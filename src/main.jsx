@@ -8,6 +8,8 @@ import './index.css';
 import { AuthProvider, useAuth } from './context/authContext';
 import LoginPage from './pages/loginPage';
 import SelectionPage from './pages/selectionPage';
+import DashboardEntregas from './pages/dashboardEntregas';
+import DashboardManutencao from './pages/dashboardManutencao';
 
 // Componente "porteiro" para rotas protegidas
 function ProtectedRoute() {
@@ -32,8 +34,11 @@ const router = createBrowserRouter([
         index: true, // Rota padrão para '/', que agora é a página de seleção
         element: <SelectionPage />,
       },
-      // Futuras rotas protegidas (ex: dashboards) iriam aqui
-      // { path: 'manutencao/dashboard', element: <DashboardManutencao /> },
+      
+       { path: 'manutencao/dashboard', element: <DashboardManutencao /> },
+
+        {path: 'entregas/dashboard', element: <DashboardEntregas/>},
+    
     ],
   },
   {

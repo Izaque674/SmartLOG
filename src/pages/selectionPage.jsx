@@ -34,9 +34,7 @@ function SelectionPage() {
         </button>
       </header>
 
-      {/* ======================================================= */}
-      {/*         AQUI ENTRA O SEU CÓDIGO VISUAL EXATO          */}
-      {/* ======================================================= */}
+
       <div className="flex h-screen bg-gray-900">
         
         {/* Lado Manutenção (Envolvido pelo Link) */}
@@ -81,7 +79,7 @@ function SelectionPage() {
             alt="Pessoa entregando caixas"
             className="
               absolute inset-0 w-full h-full object-cover
-              filter brightness-30 group-hover:brightness-70
+              filter brightness-75 group-hover:brightness-100
               transition-all duration-300
             "
           />
