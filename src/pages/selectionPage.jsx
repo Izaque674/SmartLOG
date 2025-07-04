@@ -2,15 +2,16 @@
 
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/authContext';
+import { useAppContext } from '../context/AppContext.jsx';
 
 // ATENÇÃO: Verifique se o nome e a extensão dos seus arquivos estão corretos.
 // No seu exemplo, você usou .png.
 import manutencaoImg from '../assets/manutencao.png';
 import entregasImg from '../assets/entregas.png';
 
+
 function SelectionPage() {
-  const { user, logout } = useAuth();
+  const { user, logout } = useAppContext();
   const navigate = useNavigate();
 
   const handleLogout = () => {

@@ -2,7 +2,8 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/authContext';
+import { useAppContext } from '../context/AppContext.jsx'; // Mudar aqui
+
 import loginBg from '../assets/login-bg.jpg'; 
 import { FiEye, FiEyeOff } from 'react-icons/fi';
 
@@ -13,7 +14,7 @@ function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login } = useAppContext(); 
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -76,7 +77,7 @@ function LoginPage() {
               type={showPassword ? 'text' : 'password'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              // Adicionei text-brand-text aqui também
+              
               className="w-full px-4 py-3 bg-gray-100 border-transparent rounded-lg text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-peach"
               placeholder="Digite sua senha"
               required

@@ -1,16 +1,14 @@
 // src/App.jsx
 
 import React from 'react';
+import { Outlet } from 'react-router-dom';
 
-// Vamos ignorar o Outlet e o roteador por um momento para este teste.
 function App() {
+  // O App.jsx atua como um container para todas as nossas páginas.
+  // O <Outlet /> é o lugar onde o React Router vai renderizar a página ativa (login, dashboard, etc.).
   return (
-    // Se o Tailwind estiver funcionando, este texto
-    // deverá aparecer enorme, vermelho e centralizado na tela.
-    <div className="min-h-screen flex items-center justify-center bg-gray-900">
-      <h1 className="text-6xl font-bold text-red-500">
-        TAILWIND TESTE
-      </h1>
+    <div>
+      <Outlet />
     </div>
   );
 }

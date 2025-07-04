@@ -1,57 +1,57 @@
 // src/main.jsx
+
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { createBrowserRouter, RouterProvider, Navigate, Outlet } from 'react-router-dom';
 
-// Importe o CSS, o Provedor de Autenticação e as Páginas
 import './index.css';
-import { AuthProvider, useAuth } from './context/authContext';
-import LoginPage from './pages/loginPage';
-import SelectionPage from './pages/selectionPage';
-import DashboardEntregas from './pages/dashboardEntregas';
-import DashboardManutencao from './pages/dashboardManutencao';
+import { AppProvider, useAppContext } from './context/AppContext.jsx';
 
-// Componente "porteiro" para rotas protegidas
+import App from './App.jsx';
+import LoginPage from './pages/LoginPage.jsx';
+import SelectionPage from './pages/SelectionPage.jsx';
+import DashboardEntregas from './pages/DashboardEntregas.jsx';
+import DashboardManutencao from './pages/DashboardManutencao.jsx';
+import AdicionarVeiculoPage from './pages/AdicionarVeiculoPage.jsx';
+import PaginaInfoVeiculo from './pages/PaginaInfoVeiculo.jsx';
+
 function ProtectedRoute() {
-  const { user } = useAuth();
-
-  // Se não há usuário, redireciona para a página de login
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
-
-  // Se há usuário, permite o acesso à página solicitada (via Outlet)
-  return <Outlet />;
+  const { user } = useAppContext();
+  return user ? <Outlet /> : <Navigate to="/login" replace />;
 }
 
-// Configuração final das rotas
+function PublicRoute() {
+  const { user } = useAppContext();
+  return !user ? <Outlet /> : <Navigate to="/" replace />;
+}
+
 const router = createBrowserRouter([
   {
     path: '/',
-    element: <ProtectedRoute />, // "Porteiro" na rota principal
+    element: <App />,
     children: [
       {
-        index: true, // Rota padrão para '/', que agora é a página de seleção
-        element: <SelectionPage />,
+        element: <ProtectedRoute />,
+        children: [
+          { index: true, element: <SelectionPage /> },
+          { path: 'manutencao/dashboard', element: <DashboardManutencao /> },
+          { path: 'manutencao/veiculo/:id', element: <PaginaInfoVeiculo /> },
+          { path: 'manutencao/veiculos/novo', element: <AdicionarVeiculoPage /> },
+          { path: 'entregas/dashboard', element: <DashboardEntregas /> },
+        ],
       },
-      
-       { path: 'manutencao/dashboard', element: <DashboardManutencao /> },
-
-        {path: 'entregas/dashboard', element: <DashboardEntregas/>},
-    
+      {
+        element: <PublicRoute />,
+        children: [{ path: 'login', element: <LoginPage /> }],
+      },
     ],
-  },
-  {
-    path: '/login',
-    element: <LoginPage />, // Rota pública de login
   },
 ]);
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    {/* Envolvemos tudo com o AuthProvider */}
-    <AuthProvider>
+    <AppProvider>
       <RouterProvider router={router} />
-    </AuthProvider>
+    </AppProvider>
   </React.StrictMode>
 );
