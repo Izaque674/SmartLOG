@@ -1,10 +1,14 @@
-// src/components/CardEntrega.jsx
-
 import React from 'react';
-import { FiMapPin, FiCheckCircle, FiX, FiInfo, FiTruck } from 'react-icons/fi'; // Adicionado FiTruck
+import { FiMapPin, FiCheckCircle, FiX, FiInfo, FiTruck } from 'react-icons/fi';
 
-function CardEntrega({ entrega }) { // Removemos a prop 'onUpdateStatus'
-  // Mapeamento de status para ícones e estilos, mais completo
+function CardEntrega({ entrega }) {
+  // =======================================================
+  // === LOG DE DEPURAÇÃO FINAL ===
+  // =======================================================
+  // Este log nos dirá se este componente específico está sendo
+  // re-renderizado e qual o valor de 'entrega.status' que ele recebeu.
+  console.log(`CARD RENDER: ID ${entrega.id} com status "${entrega.status}"`);
+
   const statusInfo = {
     'Pendente': { 
       icon: <FiInfo className="text-gray-500" />, 
@@ -35,7 +39,6 @@ function CardEntrega({ entrega }) { // Removemos a prop 'onUpdateStatus'
   const currentStatus = statusInfo[entrega.status] || statusInfo['Pendente'];
 
   return (
-    // O card agora é apenas informativo
     <div className={`p-4 rounded-lg shadow-sm border-l-4 ${currentStatus.bg}`} style={{ borderColor: currentStatus.borderColor }}>
       <div className="flex justify-between items-start">
         <div>
@@ -45,14 +48,11 @@ function CardEntrega({ entrega }) { // Removemos a prop 'onUpdateStatus'
             <span>{entrega.endereco}</span>
           </div>
         </div>
-        <div className={`flex items-center text-xs font-semibold px-2 py-1 rounded-full ${currentStatus.bg} ${currentStatus.text}`}>
+        <div className={`flex items-center text-xs font-semibold px-2 py-1 rounded-full ${currentStatus.text} ${currentStatus.bg}`}>
           {currentStatus.icon}
           <span className="ml-1.5">{entrega.status}</span>
         </div>
       </div>
-      
-      {/* SEÇÃO DE AÇÕES REMOVIDA DAQUI */}
-      
     </div>
   );
 }

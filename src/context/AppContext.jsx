@@ -1,106 +1,60 @@
-import React, { createContext, useState, useContext } from 'react';
+import React, { createContext, useState, useContext, useCallback, useMemo } from 'react';
 
 const AppContext = createContext(null);
-export const API_URL = 'http://localhost:3001/api'; // Exportando a URL para ser usada em outros lugares
+export const API_URL = 'http://localhost:3001/api';
 
 export function AppProvider({ children }) {
   // === ESTADOS GLOBAIS ===
   const [user, setUser] = useState(null);
-  const [frota, setFrota] = useState([]); // Começa vazio
-  const [entregadores, setEntregadores] = useState([]); // Começa vazio
-  const [entregas, setEntregas] = useState([]); // Começa vazio
+  const [frota, setFrota] = useState([]);
+  const [entregadores, setEntregadores] = useState([]);
+  const [entregas, setEntregas] = useState([]);
 
-  // === FUNÇÕES DE AUTENTICAÇÃO ===
-  const login = (email, password) => {
-    // Lógica de login simples. Em um app real, isso faria uma chamada de API.
-    const userData = { email: email, name: "Gestor SmartLOG" };
+  // === FUNÇÕES ===
+  // (Note que as funções que modificam o estado permanecem aqui)
+  
+  const login = useCallback((email, password) => {
+    const userData = { email, name: "Gestor SmartLOG" };
     setUser(userData);
     return true;
-  };
+  }, []);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     setUser(null);
-  };
+  }, []);
 
-  // === FUNÇÕES DE DADOS ===
-
-  // Esta função será chamada pelos dashboards para popular o estado inicial.
-  const loadInitialData = async () => {
-    try {
-      const response = await fetch(`${API_URL}/dados`);
-      if (!response.ok) throw new Error('Falha ao buscar dados do backend');
-      const data = await response.json();
-      
-      setEntregas(data.entregas || []);
-      setEntregadores(data.entregadores || []);
-      // Futuramente: setFrota(data.frota || []);
-      
-      return true; // Indica sucesso
-    } catch (error) {
-      console.error("Erro em loadInitialData:", error);
-      return false; // Indica falha
-    }
-  };
-
-  const adicionarNovaEntrega = async (novaEntrega) => {
+  const adicionarNovaEntrega = useCallback(async (novaEntrega) => {
     try {
       const response = await fetch(`${API_URL}/entregas`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(novaEntrega),
       });
-      if (!response.ok) throw new Error('Falha na resposta da API ao adicionar entrega');
-      
+      if (!response.ok) throw new Error('API Error');
       const entregaSalva = await response.json();
-      // Adiciona a nova entrega ao estado local para atualização da UI
+      // Atualiza o estado localmente após o sucesso
       setEntregas(entregasAtuais => [...entregasAtuais, entregaSalva]);
       return true;
     } catch (error) {
       console.error("Erro em adicionarNovaEntrega:", error);
       return false;
     }
-  };
+  }, []);
 
-  // Adicionando as funções de manutenção de frota de volta
-  const adicionarVeiculo = (novoVeiculo) => {
-    setFrota(frotaAtual => [...frotaAtual, novoVeiculo]);
-  };
-
-  const atualizarVeiculoKm = (veiculoId, novaKm) => {
-    setFrota(frotaAtual => 
-      frotaAtual.map(v => v.id === veiculoId ? { ...v, km_atual: novaKm } : v)
-    );
-  };
-
-  const registrarManutencaoRealizada = (veiculoId, itemId) => {
-    setFrota(frotaAtual => 
-      frotaAtual.map(v => {
-        if (v.id === veiculoId) {
-          const novosItens = v.itensDeManutencao.map(item => 
-            item.id === itemId ? { ...item, km_ultima_revisao: v.km_atual } : item
-          );
-          return { ...v, itensDeManutencao: novosItens };
-        }
-        return v;
-      })
-    );
-  };
-
-  // === VALOR COMPARTILHADO ===
-  const value = {
+  // === VALOR DO CONTEXTO MEMORIZADO ===
+  // Exportamos os estados e as funções que os modificam, incluindo os setters.
+  const value = useMemo(() => ({
     user,
     login,
     logout,
     frota,
+    setFrota, // Exportando setters se outras partes precisarem
     entregadores,
+    setEntregadores, // Exportando setter
     entregas,
-    loadInitialData,
+    setEntregas, // Exportando setter
     adicionarNovaEntrega,
-    adicionarVeiculo,
-    atualizarVeiculoKm,
-    registrarManutencaoRealizada,
-    // Adicione outras funções aqui conforme necessário
-  };
+  }), [user, frota, entregadores, entregas]); // Dependências são apenas os estados
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }

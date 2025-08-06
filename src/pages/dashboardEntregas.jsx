@@ -1,7 +1,7 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAppContext } from '../context/AppContext.jsx';
-import { FiPlusCircle, FiTruck, FiCheck, FiClock, FiSend } from 'react-icons/fi';
+import { useAppContext, API_URL } from '../context/AppContext.jsx';
+import { FiPlusCircle, FiTruck, FiCheck, FiClock } from 'react-icons/fi';
 import AdicionarEntregaModal from '../components/AdicionarEntregaModal.jsx';
 import ColunaEntregador from '../components/ColunaEntregador.jsx';
 
@@ -10,61 +10,55 @@ function DashboardEntregas() {
     user, 
     logout, 
     entregas, 
-    entregadores, 
-    loadInitialData,
+    setEntregas, // Pega o setter de entregas
+    entregadores,
+    setEntregadores, // Pega o setter de entregadores
     adicionarNovaEntrega,
-    atualizarStatusEntrega 
   } = useAppContext();
   
   const navigate = useNavigate();
-
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [entregadorParaAdicionar, setEntregadorParaAdicionar] = useState(null);
 
+  // Criamos a função de carregamento aqui, usando os setters do contexto
+  const loadData = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_URL}/dados`, { cache: 'no-cache' });
+      const data = await response.json();
+      console.log("Dashboard buscando e atualizando dados. Status da entrega 103:", data.entregas.find(e => e.id === 103)?.status);
+      setEntregas(data.entregas || []);
+      setEntregadores(data.entregadores || []);
+    } catch (error) {
+      console.error("Erro ao carregar dados no Dashboard:", error);
+    }
+  }, [setEntregas, setEntregadores]); // Depende dos setters, que são estáveis
+
+  // Efeito de carregamento e polling
   useEffect(() => {
-    const carregarDados = async () => {
-      // Se a lista de entregas já tiver dados, não precisamos buscar de novo.
-      // Isso evita buscar dados toda vez que o usuário navega de volta para o dashboard.
-      if (entregas.length > 0) {
+    const fetchData = async () => {
+      await loadData();
+      if (isLoading) {
         setIsLoading(false);
-        return;
       }
-      
-      console.log("Buscando dados iniciais da API...");
-      await loadInitialData();
-      setIsLoading(false);
     };
+    fetchData(); // Carga inicial
+    const intervalId = setInterval(fetchData, 5000); // Polling
+    return () => clearInterval(intervalId);
+  }, [isLoading, loadData]);
 
-    carregarDados();
-  }, [entregas.length, loadInitialData]);
-
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
-
-  const handleOpenAddModal = (entregadorId) => {
-    setEntregadorParaAdicionar(entregadorId);
-    setIsModalOpen(true);
-  };
+  const handleLogout = () => { logout(); navigate('/login'); };
+  const handleOpenAddModal = (entregadorId) => { setEntregadorParaAdicionar(entregadorId); setIsModalOpen(true); };
   
   const handleSaveNovaEntrega = async (dadosDaEntrega) => {
-    const novaEntrega = {
-      ...dadosDaEntrega,
-      entregadorId: entregadorParaAdicionar,
-      status: 'Em Trânsito' // Assume que ao adicionar, já está em trânsito
-    };
-    
-    const sucesso = await adicionarNovaEntrega(novaEntrega);
-    if (!sucesso) {
-      alert("Falha ao adicionar entrega. Verifique o console e o backend.");
-    }
+    const novaEntrega = { ...dadosDaEntrega, entregadorId: entregadorParaAdicionar, status: 'Em Trânsito' };
+    const sucesso = await adicionarNovaEntrega(novaEntrega); // Esta função já atualiza o estado no contexto
+    if (!sucesso) { alert("Falha ao adicionar entrega."); }
   };
   
   const entregasPorEntregador = useMemo(() => {
     const agrupado = {};
-    if (entregadores && entregadores.length > 0) {
+    if (entregadores?.length > 0) {
       entregadores.forEach(entregador => {
         agrupado[entregador.id] = entregas.filter(e => e.entregadorId === entregador.id);
       });
@@ -73,11 +67,7 @@ function DashboardEntregas() {
   }, [entregas, entregadores]);
 
   if (isLoading) {
-    return (
-      <div className="flex justify-center items-center min-h-screen bg-gray-100">
-        <p className="text-xl font-semibold text-gray-600 animate-pulse">Carregando dados...</p>
-      </div>
-    );
+    return <div className="flex justify-center items-center min-h-screen bg-gray-100"><p className="text-xl font-semibold text-gray-600 animate-pulse">Carregando...</p></div>;
   }
 
   return (
@@ -90,9 +80,8 @@ function DashboardEntregas() {
             <button onClick={handleLogout} className="text-sm text-gray-600 hover:text-red-600">Sair</button>
           </div>
         </header>
-
         <main className="flex-grow flex space-x-4 p-4 overflow-x-auto">
-          {entregadores && entregadores.length > 0 ? (
+          {entregadores?.length > 0 ? (
             entregadores.map(entregador => (
               <ColunaEntregador
                 key={entregador.id}
@@ -106,13 +95,7 @@ function DashboardEntregas() {
           )}
         </main>
       </div>
-
-      {isModalOpen && (
-        <AdicionarEntregaModal
-          onClose={() => setIsModalOpen(false)}
-          onSave={handleSaveNovaEntrega}
-        />
-      )}
+      {isModalOpen && <AdicionarEntregaModal onClose={() => setIsModalOpen(false)} onSave={handleSaveNovaEntrega} />}
     </div>
   );
 }
