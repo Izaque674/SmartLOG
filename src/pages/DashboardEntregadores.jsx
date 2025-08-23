@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAppContext } from '../context/AppContext.jsx';
+import { useAppContext, API_URL } from '../context/AppContext.jsx';
 import { FiUsers, FiPlusCircle, FiTruck, FiCheckSquare, FiPlay, FiEye, FiLogOut } from 'react-icons/fi';
 
 // Modais
@@ -8,11 +8,11 @@ import AdicionarEntregadorModal from '../components/AdicionarEntregadorModal.jsx
 import PerfilEntregadorModal from '../components/PerfilEntregadorModal.jsx';
 import ConfirmacaoModal from '../components/ConfirmacaoModal.jsx';
 
-// Funções do Firebase (sem o Storage)
-import { collection, query, where, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, getDocs } from 'firebase/firestore';
+// Funções do Firebase (necessárias para a lógica de jornada em tempo real)
+import { collection, query, where, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase-config.js';
 
-// Componente para os cartões de indicadores (KPIs)
+// Componente KpiCard
 function KpiCard({ title, value, icon }) {
   return (
     <div className="bg-white p-6 rounded-lg shadow-md flex items-center space-x-4">
@@ -25,11 +25,11 @@ function KpiCard({ title, value, icon }) {
   );
 }
 
-// Componente para o cartão de cada entregador no grid, com foto placeholder
+// Componente EntregadorCard
 function EntregadorCard({ entregador, onClick }) {
   return (
     <div onClick={onClick} className="bg-white p-4 rounded-lg shadow-md flex flex-col items-center text-center transition-transform transform hover:scale-105 cursor-pointer border hover:border-blue-500 hover:shadow-xl">
-      <img src={`https://i.pravatar.cc/80?u=${entregador.id}`} alt={entregador.nome} className="w-20 h-20 rounded-full mb-3 border-2 border-gray-200 object-cover" />
+      <img src={entregador.fotoUrl || `https://i.pravatar.cc/80?u=${entregador.id}`} alt={entregador.nome} className="w-20 h-20 rounded-full mb-3 border-2 border-gray-200 object-cover" />
       <h4 className="font-semibold text-gray-800">{entregador.nome}</h4>
       <p className="text-xs text-gray-500">{entregador.telefone || 'Sem telefone'}</p>
     </div>
@@ -43,15 +43,16 @@ function DashboardControleEntregas() {
   const [entregadores, setEntregadores] = useState([]);
   const [jornadaAtiva, setJornadaAtiva] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-
-  // Estados para controlar os modais
-  const [modalAberto, setModalAberto] = useState(null); // 'adicionar', 'editar', 'perfil', 'excluir', 'finalizar'
+  const [modalAberto, setModalAberto] = useState(null);
   const [entregadorSelecionado, setEntregadorSelecionado] = useState(null);
 
-  // Efeito para buscar dados do Firestore
   useEffect(() => {
-    if (!user) { setIsLoading(false); return; }
+    if (!user) {
+      setIsLoading(false);
+      return;
+    }
 
+    // Ouvinte para as jornadas ativas (direto do Firestore para reatividade da UI)
     const qJornadas = query(collection(db, 'jornadas'), where("userId", "==", user.uid), where("status", "==", "ativa"));
     const unsubJornadas = onSnapshot(qJornadas, (snapshot) => {
       if (!snapshot.empty) {
@@ -61,7 +62,8 @@ function DashboardControleEntregas() {
         setJornadaAtiva(null);
       }
     });
-    
+
+    // Ouvinte para os entregadores (direto do Firestore para reatividade da UI)
     const qEntregadores = query(collection(db, 'entregadores'), where("userId", "==", user.uid));
     const unsubEntregadores = onSnapshot(qEntregadores, (snapshot) => {
       setEntregadores(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
@@ -74,33 +76,48 @@ function DashboardControleEntregas() {
     };
   }, [user]);
 
-  const handleOpenModal = (tipo, entregador = null) => {
-    // Se um entregador for passado, ele é sempre definido
-    if (entregador) {
-      setEntregadorSelecionado(entregador);
-    }
-    // Define qual modal deve ser aberto
-    setModalAberto(tipo);
-  };
-
   const handleCloseModal = () => {
-    setEntregadorSelecionado(null);
     setModalAberto(null);
+    setEntregadorSelecionado(null);
   };
 
-  // --- FUNÇÕES CRUD (SEM UPLOAD DE FOTO) ---
+  const handleAbrirPerfil = (entregador) => {
+    setEntregadorSelecionado(entregador);
+    setModalAberto('perfil');
+  };
+  
+  const handleAbrirAdicionar = () => {
+    setEntregadorSelecionado(null);
+    setModalAberto('adicionar');
+  };
+
+  const handleAbrirEditar = () => {
+    setModalAberto('editar');
+  };
+
+  const handleAbrirExcluir = () => {
+    setModalAberto('excluir');
+  };
+
+  const handleAbrirFinalizar = () => {
+    setModalAberto('finalizar');
+  };
+
   const handleSaveEntregador = async (formData) => {
-    const dadosParaSalvar = { ...formData, userId: user.uid };
+    const isEditing = modalAberto === 'editar';
+    const url = isEditing ? `${API_URL}/entregadores/${entregadorSelecionado.id}` : `${API_URL}/entregadores`;
+    const method = isEditing ? 'PUT' : 'POST';
 
     try {
-      if (modalAberto === 'editar' && entregadorSelecionado) { // Modo Edição
-        const entregadorDocRef = doc(db, 'entregadores', entregadorSelecionado.id);
-        await updateDoc(entregadorDocRef, dadosParaSalvar);
-      } else { // Modo Adicionar
-        await addDoc(collection(db, 'entregadores'), dadosParaSalvar);
-      }
+      const response = await fetch(url, {
+        method: method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...formData, userId: user.uid }),
+      });
+      if (!response.ok) throw new Error('Falha ao salvar entregador na API');
+      // O 'onSnapshot' cuidará de atualizar a tela, não precisamos do fetchData()
     } catch (error) {
-      console.error("Erro ao salvar entregador:", error);
+      console.error("Erro ao salvar entregador via API:", error);
     } finally {
       handleCloseModal();
     }
@@ -108,14 +125,19 @@ function DashboardControleEntregas() {
 
   const handleDeleteEntregador = async () => {
     if (!entregadorSelecionado) return;
-    const entregadorDocRef = doc(db, 'entregadores', entregadorSelecionado.id);
-    await deleteDoc(entregadorDocRef);
-    handleCloseModal();
+    try {
+      const response = await fetch(`${API_URL}/entregadores/${entregadorSelecionado.id}`, { method: 'DELETE' });
+      if (!response.ok) throw new Error('Falha ao deletar entregador na API');
+    } catch (error) {
+      console.error("Erro ao deletar entregador via API:", error);
+    } finally {
+      handleCloseModal();
+    }
   };
 
   const handleIniciarDia = async () => {
     if (entregadores.length === 0) {
-      alert("Adicione pelo menos um entregador à sua equipe antes de iniciar o dia.");
+      alert("Adicione pelo menos um entregador antes de iniciar o dia.");
       return;
     }
     const idsDosEntregadores = entregadores.map(e => e.id);
@@ -129,7 +151,7 @@ function DashboardControleEntregas() {
     });
     navigate('/entregas/operacao');
   };
-
+  
   const handleFinalizarDia = async () => {
     if (!jornadaAtiva) return;
     const jornadaDocRef = doc(db, 'jornadas', jornadaAtiva.id);
@@ -163,7 +185,7 @@ function DashboardControleEntregas() {
               <Link to="/entregas/operacao" className="bg-blue-500 text-white font-bold py-2 px-4 rounded hover:bg-blue-600 flex items-center space-x-2">
                 <FiEye /><span>Ver Operação</span>
               </Link>
-              <button onClick={() => handleOpenModal('finalizar')} className="bg-red-500 text-white font-bold py-2 px-4 rounded hover:bg-red-600 flex items-center space-x-2">
+              <button onClick={handleAbrirFinalizar} className="bg-red-500 text-white font-bold py-2 px-4 rounded hover:bg-red-600 flex items-center space-x-2">
                 <FiLogOut /><span>Finalizar Dia</span>
               </button>
             </div>
@@ -185,7 +207,7 @@ function DashboardControleEntregas() {
         <div className="bg-white rounded-lg shadow-md">
           <div className="p-4 flex justify-between items-center border-b">
             <h2 className="text-lg font-semibold">Sua Equipe</h2>
-            <button onClick={() => handleOpenModal('adicionar')} className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+            <button onClick={handleAbrirAdicionar} className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
               <FiPlusCircle /><span>Adicionar Entregador</span>
             </button>
           </div>
@@ -195,7 +217,7 @@ function DashboardControleEntregas() {
                 <EntregadorCard 
                   key={entregador.id} 
                   entregador={entregador} 
-                  onClick={() => handleOpenModal('perfil', entregador)}
+                  onClick={() => handleAbrirPerfil(entregador)}
                 />
               )
             ) : (
@@ -205,20 +227,27 @@ function DashboardControleEntregas() {
         </div>
       </main>
       
-      {/* Gerenciamento Centralizado de Modais */}
+      {/* Gerenciamento de Modais */}
       {modalAberto === 'perfil' && (
         <PerfilEntregadorModal 
           entregador={entregadorSelecionado}
           onClose={handleCloseModal}
-          onEdit={() => handleOpenModal('editar', entregadorSelecionado)}
-          onDelete={() => handleOpenModal('excluir', entregadorSelecionado)}
+          onEdit={handleAbrirEditar}
+          onDelete={handleAbrirExcluir}
         />
       )}
-      {(modalAberto === 'adicionar' || modalAberto === 'editar') && (
+      {modalAberto === 'adicionar' && (
         <AdicionarEntregadorModal 
           onClose={handleCloseModal}
           onSave={handleSaveEntregador}
-          entregadorExistente={modalAberto === 'editar' ? entregadorSelecionado : null}
+          entregadorExistente={null}
+        />
+      )}
+      {modalAberto === 'editar' && (
+        <AdicionarEntregadorModal 
+          onClose={handleCloseModal}
+          onSave={handleSaveEntregador}
+          entregadorExistente={entregadorSelecionado}
         />
       )}
       {modalAberto === 'excluir' && (

@@ -1,80 +1,73 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { FiX, FiEdit, FiTrash2, FiPhone, FiTruck, FiMapPin } from 'react-icons/fi';
 
-// O modal agora pode receber um entregador existente para edição
-function AdicionarEntregadorModal({ onClose, onSave, entregadorExistente }) {
-  const [formData, setFormData] = useState({
-    nome: '',
-    telefone: '',
-    veiculo: '',
-    rota: ''
-  });
-  const [error, setError] = useState('');
-
-  // Se for uma edição, preenche o formulário com os dados existentes
-  useEffect(() => {
-    if (entregadorExistente) {
-      setFormData({
-        nome: entregadorExistente.nome || '',
-        telefone: entregadorExistente.telefone || '',
-        veiculo: entregadorExistente.veiculo || '',
-        rota: entregadorExistente.rota || ''
-      });
-    }
-  }, [entregadorExistente]);
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prevState => ({ ...prevState, [name]: value }));
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!formData.nome) {
-      setError('O nome é obrigatório.');
-      return;
-    }
-    // A função onSave agora recebe apenas os dados do formulário
-    onSave(formData);
-    onClose();
-  };
-
-  const isEditing = !!entregadorExistente;
+function PerfilEntregadorModal({ entregador, onClose, onEdit, onDelete }) {
+  // Se por algum motivo o modal for renderizado sem um entregador, não mostra nada.
+  if (!entregador) {
+    return null;
+  }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-      <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
-        <form onSubmit={handleSubmit}>
-          <h2 className="text-xl font-bold mb-4">
-            {isEditing ? 'Editar Entregador' : 'Adicionar Novo Entregador'}
-          </h2>
-          
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="nome" className="block text-sm font-medium">Nome Completo</label>
-              <input id="nome" name="nome" type="text" value={formData.nome} onChange={handleChange} className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md" required />
-            </div>
-            <div>
-              <label htmlFor="telefone" className="block text-sm font-medium">Telefone</label>
-              <input id="telefone" name="telefone" type="text" value={formData.telefone} onChange={handleChange} className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md" />
-            </div>
-            <div>
-              <label htmlFor="veiculo" className="block text-sm font-medium">Veículo Utilizado</label>
-              <input id="veiculo" name="veiculo" type="text" value={formData.veiculo} onChange={handleChange} className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md" placeholder="Ex: Moto Honda CG 160" />
-            </div>
-            <div>
-              <label htmlFor="rota" className="block text-sm font-medium">Rota Principal / Área</label>
-              <input id="rota" name="rota" type="text" value={formData.rota} onChange={handleChange} className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md" placeholder="Ex: Zona Sul, Centro" />
-            </div>
-          </div>
+    <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 p-4 animate-fade-in">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-lg relative animate-slide-up">
+        
+        {/* Botão de Fechar no canto */}
+        <button 
+          onClick={onClose} 
+          className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 transition-colors"
+          aria-label="Fechar modal"
+        >
+          <FiX size={24} />
+        </button>
 
-          {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
-          <div className="mt-6 flex justify-end space-x-3">
-            <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 rounded-md">Cancelar</button>
-            <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-md">Salvar</button>
+        {/* Conteúdo do Perfil */}
+        <div className="p-6 pt-8">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start space-y-4 sm:space-y-0 sm:space-x-6">
+            <img 
+              src={entregador.fotoUrl || `https://i.pravatar.cc/150?u=${entregador.id}`} 
+              alt={entregador.nome} 
+              className="w-32 h-32 rounded-full border-4 border-gray-100 shadow-md object-cover"
+            />
+            <div className="text-center sm:text-left flex-1">
+              <h2 className="text-2xl font-bold text-gray-800">{entregador.nome}</h2>
+              <div className="mt-3 space-y-2 text-gray-600">
+                <p className="flex items-center justify-center sm:justify-start">
+                  <FiPhone size={14} className="mr-2 text-gray-400" />
+                  {entregador.telefone || 'Telefone não informado'}
+                </p>
+                <p className="flex items-center justify-center sm:justify-start">
+                  <FiTruck size={14} className="mr-2 text-gray-400" />
+                  {entregador.veiculo || 'Veículo não informado'}
+                </p>
+                <p className="flex items-center justify-center sm:justify-start">
+                  <FiMapPin size={14} className="mr-2 text-gray-400" />
+                  {entregador.rota || 'Rota não informada'}
+                </p>
+              </div>
+            </div>
           </div>
-        </form>
+        </div>
+
+        {/* Rodapé com os botões de Ação */}
+        <div className="bg-gray-50 px-6 py-4 flex justify-end space-x-3 rounded-b-lg border-t">
+          <button 
+            onClick={onEdit} // Chama a função onEdit passada pelo Dashboard
+            className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+          >
+            <FiEdit />
+            <span>Editar</span>
+          </button>
+          <button 
+            onClick={onDelete} // Chama a função onDelete passada pelo Dashboard
+            className="flex items-center space-x-2 bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700"
+          >
+            <FiTrash2 />
+            <span>Excluir</span>
+          </button>
+        </div>
       </div>
     </div>
   );
 }
-export default AdicionarEntregadorModal;
+
+export default PerfilEntregadorModal;

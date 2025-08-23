@@ -1,11 +1,14 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth } from '../firebase-config'; // Verifique se o caminho está correto
+export const API_URL = 'http://localhost:3001/api';
 
 // 1. Cria o Contexto
 const AppContext = createContext();
 
 // 2. Cria o Provedor
+
+
 export function AppProvider({ children }) {
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true); // Controla o carregamento da autenticação

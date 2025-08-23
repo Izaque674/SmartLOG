@@ -1,90 +1,68 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAppContext } from '../context/AppContext.jsx';
+import { useAppContext, API_URL } from '../context/AppContext.jsx';
 import AdicionarEntregaModal from '../components/AdicionarEntregaModal.jsx';
 import ColunaEntregador from '../components/ColunaEntregador.jsx';
-import { collection, query, where, onSnapshot, addDoc, doc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../firebase-config';
 import { FiArrowLeft } from 'react-icons/fi';
+
+// As importações do Firebase foram COMPLETAMENTE REMOVIDAS daqui.
 
 function DashboardOperacaoEntregas() {
   const { user, logout } = useAppContext();
   const navigate = useNavigate();
-
-  const [todosEntregadores, setTodosEntregadores] = useState([]);
-  const [todasEntregas, setTodasEntregas] = useState([]);
-  const [jornadaAtiva, setJornadaAtiva] = useState(null);
+  const [entregadoresAtivos, setEntregadoresAtivos] = useState([]);
+  const [entregas, setEntregas] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [entregadorParaAdicionar, setEntregadorParaAdicionar] = useState(null);
 
   useEffect(() => {
     if (!user) return;
-
-    // "Ouvinte" 1: Busca a jornada ativa
-    const qJornadas = query(collection(db, 'jornadas'), where("userId", "==", user.uid), where("status", "==", "ativa"));
-    const unsubJornadas = onSnapshot(qJornadas, (snapshotJornadas) => {
-      if (snapshotJornadas.empty) {
-        setIsLoading(false);
+    const fetchData = async () => {
+      try {
+        const response = await fetch(`${API_URL}/operacao/${user.uid}`);
+        if (!response.ok) throw new Error('Falha ao buscar dados da operação');
+        const data = await response.json();
+        
+        // Se a API não retorna entregadores, a jornada pode ter acabado.
+        if (data.entregadoresAtivos.length === 0 && data.entregasAtivas.length === 0) {
+          navigate('/entregas/controle');
+        } else {
+          setEntregadoresAtivos(data.entregadoresAtivos);
+          setEntregas(data.entregasAtivas);
+        }
+      } catch (error) {
+        console.error("Erro ao carregar dados da operação:", error);
         navigate('/entregas/controle');
-        return;
+      } finally {
+        setIsLoading(false);
       }
-      setJornadaAtiva(snapshotJornadas.docs[0].data());
-    });
-
-    // "Ouvinte" 2: Busca TODOS os entregadores do usuário
-    const qEntregadores = query(collection(db, 'entregadores'), where("userId", "==", user.uid));
-    const unsubEntregadores = onSnapshot(qEntregadores, (snapshot) => {
-      setTodosEntregadores(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    });
-    
-    // "Ouvinte" 3: Busca TODAS as entregas do usuário
-    const qEntregas = query(collection(db, 'entregas'), where("userId", "==", user.uid));
-    const unsubEntregas = onSnapshot(qEntregas, (snapshot) => {
-      setTodasEntregas(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-      setIsLoading(false);
-    });
-
-    return () => { // Limpeza de todos os ouvintes
-      unsubJornadas();
-      unsubEntregadores();
-      unsubEntregas();
     };
+    fetchData();
+    const intervalId = setInterval(fetchData, 5000);
+    return () => clearInterval(intervalId);
   }, [user, navigate]);
-  
-  // --- LÓGICA DE FILTRAGEM NO CLIENTE ---
-  // useMemo para calcular quais entregadores e entregas mostrar
-  const { entregadoresAtivos, entregasAtivas } = useMemo(() => {
-    if (!jornadaAtiva) {
-      return { entregadoresAtivos: [], entregasAtivas: [] };
-    }
-    const idsAtivos = new Set(jornadaAtiva.entregadoresIds || []);
-    const entregadoresFiltrados = todosEntregadores.filter(e => idsAtivos.has(e.id));
-    const entregasFiltradas = todasEntregas.filter(entrega => idsAtivos.has(entrega.entregadorId));
-    
-    return { entregadoresAtivos: entregadoresFiltrados, entregasAtivas: entregasFiltradas };
-  }, [jornadaAtiva, todosEntregadores, todasEntregas]);
 
-  const entregasPorEntregador = useMemo(() => {
-    const agrupado = {};
-    entregadoresAtivos.forEach(entregador => {
-      agrupado[entregador.id] = entregasAtivas.filter(e => e.entregadorId === entregador.id);
-    });
-    return agrupado;
-  }, [entregasAtivas, entregadoresAtivos]);
-  
   const handleLogout = () => { logout(); navigate('/login'); };
   const handleOpenAddModal = (entregadorId) => { setEntregadorParaAdicionar(entregadorId); setIsModalOpen(true); };
   const handleSaveNovaEntrega = async (dadosDaEntrega) => {
-    if (!user || !entregadorParaAdicionar) return;
-    await addDoc(collection(db, 'entregas'), {
-      ...dadosDaEntrega,
-      entregadorId: entregadorParaAdicionar,
-      status: 'Em Trânsito',
-      userId: user.uid,
-      createdAt: serverTimestamp(),
-    });
+    try {
+      await fetch(`${API_URL}/entregas`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...dadosDaEntrega, entregadorId: entregadorParaAdicionar }),
+      });
+      setIsModalOpen(false);
+    } catch (error) { console.error("Erro ao salvar entrega:", error); }
   };
+  
+  const entregasPorEntregador = useMemo(() => {
+    const agrupado = {};
+    entregadoresAtivos.forEach(entregador => {
+      agrupado[entregador.id] = entregas.filter(e => e.entregadorId === entregador.id);
+    });
+    return agrupado;
+  }, [entregas, entregadoresAtivos]);
 
   if (isLoading) {
     return <div className="flex justify-center items-center h-screen">Carregando Operação...</div>;
