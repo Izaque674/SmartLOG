@@ -7,8 +7,9 @@ import { FiUsers, FiPlusCircle, FiTruck, FiCheckSquare, FiPlay, FiEye, FiLogOut 
 import AdicionarEntregadorModal from '../components/AdicionarEntregadorModal.jsx';
 import PerfilEntregadorModal from '../components/PerfilEntregadorModal.jsx';
 import ConfirmacaoModal from '../components/ConfirmacaoModal.jsx';
+import ResumoJornadaModal from '../components/ResumoJornadaModal.jsx';
 
-// Funções do Firebase (necessárias para a lógica de jornada em tempo real)
+// Funções do Firebase
 import { collection, query, where, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase-config.js';
 
@@ -43,16 +44,15 @@ function DashboardControleEntregas() {
   const [entregadores, setEntregadores] = useState([]);
   const [jornadaAtiva, setJornadaAtiva] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  
   const [modalAberto, setModalAberto] = useState(null);
   const [entregadorSelecionado, setEntregadorSelecionado] = useState(null);
+  
+  const [dadosResumo, setDadosResumo] = useState(null);
 
   useEffect(() => {
-    if (!user) {
-      setIsLoading(false);
-      return;
-    }
-
-    // Ouvinte para as jornadas ativas (direto do Firestore para reatividade da UI)
+    if (!user) { setIsLoading(false); return; }
+    
     const qJornadas = query(collection(db, 'jornadas'), where("userId", "==", user.uid), where("status", "==", "ativa"));
     const unsubJornadas = onSnapshot(qJornadas, (snapshot) => {
       if (!snapshot.empty) {
@@ -63,7 +63,6 @@ function DashboardControleEntregas() {
       }
     });
 
-    // Ouvinte para os entregadores (direto do Firestore para reatividade da UI)
     const qEntregadores = query(collection(db, 'entregadores'), where("userId", "==", user.uid));
     const unsubEntregadores = onSnapshot(qEntregadores, (snapshot) => {
       setEntregadores(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
@@ -79,6 +78,7 @@ function DashboardControleEntregas() {
   const handleCloseModal = () => {
     setModalAberto(null);
     setEntregadorSelecionado(null);
+    setDadosResumo(null); // Limpa o resumo ao fechar qualquer modal
   };
 
   const handleAbrirPerfil = (entregador) => {
@@ -115,7 +115,6 @@ function DashboardControleEntregas() {
         body: JSON.stringify({ ...formData, userId: user.uid }),
       });
       if (!response.ok) throw new Error('Falha ao salvar entregador na API');
-      // O 'onSnapshot' cuidará de atualizar a tela, não precisamos do fetchData()
     } catch (error) {
       console.error("Erro ao salvar entregador via API:", error);
     } finally {
@@ -153,10 +152,28 @@ function DashboardControleEntregas() {
   };
   
   const handleFinalizarDia = async () => {
-    if (!jornadaAtiva) return;
-    const jornadaDocRef = doc(db, 'jornadas', jornadaAtiva.id);
-    await updateDoc(jornadaDocRef, { status: "finalizada", dataFim: serverTimestamp() });
-    handleCloseModal();
+    const idJornadaFinalizada = jornadaAtiva?.id;
+    if (!idJornadaFinalizada) return;
+
+    // Fecha o modal de CONFIRMAÇÃO
+    setModalAberto(null);
+
+    try {
+      const response = await fetch(`${API_URL}/jornadas/${idJornadaFinalizada}/finalizar`, {
+        method: 'POST',
+      });
+      if (!response.ok) throw new Error('Falha ao finalizar jornada na API');
+
+      const resumo = await response.json();
+      
+      // Salva os dados do resumo e abre o modal de RESUMO
+      setDadosResumo({ ...resumo, jornadaId: idJornadaFinalizada });
+      setModalAberto('resumo'); // Abre o modal de resumo
+
+    } catch (error) {
+      console.error("Erro ao finalizar dia:", error);
+      alert("Não foi possível finalizar a jornada.");
+    }
   };
 
   if (isLoading) {
@@ -227,7 +244,6 @@ function DashboardControleEntregas() {
         </div>
       </main>
       
-      {/* Gerenciamento de Modais */}
       {modalAberto === 'perfil' && (
         <PerfilEntregadorModal 
           entregador={entregadorSelecionado}
@@ -268,6 +284,13 @@ function DashboardControleEntregas() {
           onCancel={handleCloseModal}
           confirmText="Sim, Finalizar"
           isDestructive={true}
+        />
+      )}
+      {modalAberto === 'resumo' && (
+        <ResumoJornadaModal 
+          resumo={dadosResumo}
+          jornadaId={dadosResumo?.jornadaId}
+          onClose={handleCloseModal}
         />
       )}
     </div>

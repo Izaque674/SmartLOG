@@ -12,9 +12,10 @@ import RegisterPage from './pages/RegisterPage.jsx';
 import SelectionPage from './pages/SelectionPage.jsx';
 
 // Páginas de Manutenção
-import DashboardManutencao from './pages/DashboardManutencao.jsx';
+import DashboardManutencao from './pages/dashboardManutencao.jsx';
 import AdicionarVeiculoPage from './pages/AdicionarVeiculoPage.jsx';
 import PaginaInfoVeiculo from './pages/PaginaInfoVeiculo.jsx';
+import PaginaDetalhesJornada from './pages/PaginaDetalhesJornada.jsx';
 
 // Páginas de Entregas (com os novos nomes para clareza)
 import DashboardControleEntregas from './pages/DashboardEntregadores.jsx'; // A página de controle/gestão
@@ -56,6 +57,7 @@ const router = createBrowserRouter([
           { path: 'entregas/controle', element: <DashboardControleEntregas /> },
           // A rota para a operação ao vivo (Kanban)
           { path: 'entregas/operacao', element: <DashboardOperacaoEntregas /> },
+          { path: 'entregas/jornada/:jornadaId', element: <PaginaDetalhesJornada /> },
         ],
       },
       {
