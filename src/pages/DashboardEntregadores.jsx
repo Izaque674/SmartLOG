@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAppContext, API_URL } from '../context/AppContext.jsx';
-import { FiUsers, FiPlusCircle, FiTruck, FiCheckSquare, FiPlay, FiEye, FiLogOut } from 'react-icons/fi';
+import { FiUsers, FiPlusCircle, FiTruck, FiCheckSquare, FiPlay, FiEye, FiLogOut , FiCalendar} from 'react-icons/fi';
 
 // Modais
 import AdicionarEntregadorModal from '../components/AdicionarEntregadorModal.jsx';
@@ -220,6 +220,12 @@ function DashboardControleEntregas() {
           <KpiCard title="Entregas Concluídas (Ontem)" value="N/A" icon={<FiCheckSquare />} />
           <KpiCard title="Entregadores em Rota" value={jornadaAtiva ? (jornadaAtiva.entregadoresIds?.length || 0) : 0} icon={<FiTruck />} />
         </div>
+
+        {/* NOVO BOTÃO DE HISTÓRICO */}
+    <Link to="/entregas/historico" className="flex items-center space-x-2 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700">
+      <FiCalendar />
+      <span>Ver Histórico</span>
+    </Link>
         
         <div className="bg-white rounded-lg shadow-md">
           <div className="p-4 flex justify-between items-center border-b">

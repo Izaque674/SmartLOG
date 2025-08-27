@@ -4,8 +4,7 @@ import { useAppContext, API_URL } from '../context/AppContext.jsx';
 import AdicionarEntregaModal from '../components/AdicionarEntregaModal.jsx';
 import ColunaEntregador from '../components/ColunaEntregador.jsx';
 import { FiArrowLeft } from 'react-icons/fi';
-
-// As importações do Firebase foram COMPLETAMENTE REMOVIDAS daqui.
+// A importação do CardEntrega não é necessária aqui, pois ele é usado dentro da ColunaEntregador
 
 function DashboardOperacaoEntregas() {
   const { user, logout } = useAppContext();
@@ -16,35 +15,38 @@ function DashboardOperacaoEntregas() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [entregadorParaAdicionar, setEntregadorParaAdicionar] = useState(null);
 
-  useEffect(() => {
-    if (!user) return;
-    const fetchData = async () => {
-      try {
-        const response = await fetch(`${API_URL}/operacao/${user.uid}`);
-        if (!response.ok) throw new Error('Falha ao buscar dados da operação');
-        const data = await response.json();
-        
-        // Se a API não retorna entregadores, a jornada pode ter acabado.
-        if (data.entregadoresAtivos.length === 0 && data.entregasAtivas.length === 0) {
-          navigate('/entregas/controle');
-        } else {
-          setEntregadoresAtivos(data.entregadoresAtivos);
-          setEntregas(data.entregasAtivas);
-        }
-      } catch (error) {
-        console.error("Erro ao carregar dados da operação:", error);
+  const fetchData = async () => {
+    try {
+      const response = await fetch(`${API_URL}/operacao/${user.uid}`);
+      if (!response.ok) throw new Error('Falha ao buscar dados da operação');
+      const data = await response.json();
+      
+      if (data.entregadoresAtivos.length === 0 && data.entregasAtivas.length === 0 && !isLoading) {
+        // Evita o redirecionamento no primeiro carregamento, caso não haja dados ainda
         navigate('/entregas/controle');
-      } finally {
-        setIsLoading(false);
+      } else {
+        setEntregadoresAtivos(data.entregadoresAtivos);
+        setEntregas(data.entregasAtivas);
       }
-    };
-    fetchData();
-    const intervalId = setInterval(fetchData, 5000);
-    return () => clearInterval(intervalId);
+    } catch (error) {
+      console.error("Erro ao carregar dados da operação:", error);
+      navigate('/entregas/controle');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (user) {
+      fetchData(); // Busca inicial
+      const intervalId = setInterval(fetchData, 5000); // Polling para atualizações
+      return () => clearInterval(intervalId);
+    }
   }, [user, navigate]);
 
   const handleLogout = () => { logout(); navigate('/login'); };
   const handleOpenAddModal = (entregadorId) => { setEntregadorParaAdicionar(entregadorId); setIsModalOpen(true); };
+  
   const handleSaveNovaEntrega = async (dadosDaEntrega) => {
     try {
       await fetch(`${API_URL}/entregas`, {
@@ -53,7 +55,29 @@ function DashboardOperacaoEntregas() {
         body: JSON.stringify({ ...dadosDaEntrega, entregadorId: entregadorParaAdicionar }),
       });
       setIsModalOpen(false);
+      await fetchData(); // Força a atualização imediata após adicionar
     } catch (error) { console.error("Erro ao salvar entrega:", error); }
+  };
+
+  // --- NOVA FUNÇÃO PARA ATUALIZAR O STATUS VIA GESTOR ---
+  const handleUpdateStatus = async (entregaId, novoStatus) => {
+    try {
+      const response = await fetch(`${API_URL}/entregas/${entregaId}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: novoStatus }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Falha ao atualizar o status da entrega');
+      }
+      
+      await fetchData(); // Força a atualização imediata após a mudança de status
+
+    } catch (error) {
+      console.error("Erro ao atualizar status:", error);
+      alert("Não foi possível atualizar o status da entrega.");
+    }
   };
   
   const entregasPorEntregador = useMemo(() => {
@@ -89,6 +113,7 @@ function DashboardOperacaoEntregas() {
                 entregador={entregador}
                 entregas={entregasPorEntregador[entregador.id] || []}
                 onAddEntrega={handleOpenAddModal}
+                onUpdateStatus={handleUpdateStatus} // Passa a função para a coluna
               />
             ))
           ) : (

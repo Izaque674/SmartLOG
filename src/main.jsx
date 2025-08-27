@@ -20,6 +20,7 @@ import PaginaDetalhesJornada from './pages/PaginaDetalhesJornada.jsx';
 // Páginas de Entregas (com os novos nomes para clareza)
 import DashboardControleEntregas from './pages/DashboardEntregadores.jsx'; // A página de controle/gestão
 import DashboardOperacaoEntregas from './pages/DashboardEntregas.jsx';    // A página do Kanban (operação)
+import PaginaHistoricoJornadas from './pages/PaginaHistoricoJornadas.jsx';
 
 
 function ProtectedRoute() {
@@ -58,6 +59,7 @@ const router = createBrowserRouter([
           // A rota para a operação ao vivo (Kanban)
           { path: 'entregas/operacao', element: <DashboardOperacaoEntregas /> },
           { path: 'entregas/jornada/:jornadaId', element: <PaginaDetalhesJornada /> },
+          { path: 'entregas/historico', element: <PaginaHistoricoJornadas /> },
         ],
       },
       {
