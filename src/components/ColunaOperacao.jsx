@@ -2,14 +2,8 @@ import React from 'react';
 import CardEntrega from './CardEntrega.jsx';
 import { FiPlus } from 'react-icons/fi';
 
-function ColunaEntregador({ entregador, entregas = [], onAddEntrega, onUpdateStatus }) {
-
-  const handleAddClick = () => {
-    console.log(`[ColunaEntregador] Botão + Adicionar Entrega clicado para o entregador ID: ${entregador.id}`);
-    // Garante que a função onAddEntrega seja chamada
-    onAddEntrega(entregador.id);
-  };
-
+// Garante que a prop 'onUpdateStatus' seja recebida e repassada
+function ColunaOperacao({ entregador, entregas = [], onAddEntregaClick, onUpdateStatus }) {
   return (
     <div className="flex-shrink-0 w-full md:w-80 bg-gray-50 rounded-xl p-3 shadow-md border">
       <div className="flex justify-between items-center mb-3">
@@ -20,7 +14,7 @@ function ColunaEntregador({ entregador, entregas = [], onAddEntrega, onUpdateSta
       </div>
 
       <button 
-        onClick={handleAddClick} // Usa o nosso handler com log
+        onClick={() => onAddEntregaClick(entregador.id)}
         className="w-full flex justify-center items-center space-x-2 py-2.5 mb-3 bg-white border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-blue-500 hover:text-blue-500 transition-colors"
       >
         <FiPlus />
@@ -32,7 +26,7 @@ function ColunaEntregador({ entregador, entregas = [], onAddEntrega, onUpdateSta
           <CardEntrega 
             key={entrega.id} 
             entrega={entrega}
-            onUpdateStatus={onUpdateStatus}
+            onUpdateStatus={onUpdateStatus} // <<< REPASSA A FUNÇÃO PARA O CARD
           />
         ))}
         {entregas.length === 0 && (
@@ -43,4 +37,4 @@ function ColunaEntregador({ entregador, entregas = [], onAddEntrega, onUpdateSta
   );
 }
 
-export default ColunaEntregador;
+export default ColunaOperacao;

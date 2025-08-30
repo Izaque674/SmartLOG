@@ -2,27 +2,30 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAppContext, API_URL } from '../context/AppContext.jsx';
 import AdicionarEntregaModal from '../components/AdicionarEntregaModal.jsx';
-import ColunaEntregador from '../components/ColunaEntregador.jsx';
+import ColunaOperacao from '../components/ColunaOperacao.jsx'; // Usando o componente isolado
+import CardEntrega from '../components/CardEntrega.jsx'; // Embora não usado aqui, é bom ter em mente
 import { FiArrowLeft } from 'react-icons/fi';
-// A importação do CardEntrega não é necessária aqui, pois ele é usado dentro da ColunaEntregador
 
 function DashboardOperacaoEntregas() {
   const { user, logout } = useAppContext();
   const navigate = useNavigate();
+
   const [entregadoresAtivos, setEntregadoresAtivos] = useState([]);
   const [entregas, setEntregas] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [entregadorParaAdicionar, setEntregadorParaAdicionar] = useState(null);
+  
+  const [isModalEntregaOpen, setIsModalEntregaOpen] = useState(false);
+  const [entregadorParaNovaEntrega, setEntregadorParaNovaEntrega] = useState(null);
 
+  // Função para buscar dados da API de operação
   const fetchData = async () => {
     try {
       const response = await fetch(`${API_URL}/operacao/${user.uid}`);
       if (!response.ok) throw new Error('Falha ao buscar dados da operação');
       const data = await response.json();
       
+      // Verifica se a jornada ainda está ativa
       if (data.entregadoresAtivos.length === 0 && data.entregasAtivas.length === 0 && !isLoading) {
-        // Evita o redirecionamento no primeiro carregamento, caso não haja dados ainda
         navigate('/entregas/controle');
       } else {
         setEntregadoresAtivos(data.entregadoresAtivos);
@@ -30,36 +33,42 @@ function DashboardOperacaoEntregas() {
       }
     } catch (error) {
       console.error("Erro ao carregar dados da operação:", error);
-      navigate('/entregas/controle');
+      navigate('/entregas/controle'); // Em caso de erro, volta para o controle
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Efeito para buscar dados periodicamente (polling)
   useEffect(() => {
-    if (user) {
-      fetchData(); // Busca inicial
-      const intervalId = setInterval(fetchData, 5000); // Polling para atualizações
-      return () => clearInterval(intervalId);
-    }
-  }, [user, navigate]);
+    if (!user) return;
+    fetchData(); // Busca inicial
+    const intervalId = setInterval(fetchData, 5000); // Re-busca a cada 5 segundos
+    return () => clearInterval(intervalId); // Limpa o intervalo ao sair da página
+  }, [user, navigate, isLoading]);
 
   const handleLogout = () => { logout(); navigate('/login'); };
-  const handleOpenAddModal = (entregadorId) => { setEntregadorParaAdicionar(entregadorId); setIsModalOpen(true); };
+
+  const handleAbrirModalEntrega = (entregadorId) => {
+    setEntregadorParaNovaEntrega(entregadorId);
+    setIsModalEntregaOpen(true);
+  };
   
-  const handleSaveNovaEntrega = async (dadosDaEntrega) => {
+  const handleSalvarNovaEntrega = async (dadosDaEntrega) => {
     try {
       await fetch(`${API_URL}/entregas`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...dadosDaEntrega, entregadorId: entregadorParaAdicionar }),
+        body: JSON.stringify({ ...dadosDaEntrega, entregadorId: entregadorParaNovaEntrega }),
       });
-      setIsModalOpen(false);
-      await fetchData(); // Força a atualização imediata após adicionar
-    } catch (error) { console.error("Erro ao salvar entrega:", error); }
+      setIsModalEntregaOpen(false);
+    } catch (error) {
+      console.error("Erro ao salvar entrega:", error);
+      alert("Falha ao adicionar a entrega.");
+    }
   };
-
-  // --- NOVA FUNÇÃO PARA ATUALIZAR O STATUS VIA GESTOR ---
+  
+  // Função para o gestor atualizar o status de uma entrega
   const handleUpdateStatus = async (entregaId, novoStatus) => {
     try {
       const response = await fetch(`${API_URL}/entregas/${entregaId}/status`, {
@@ -69,10 +78,11 @@ function DashboardOperacaoEntregas() {
       });
 
       if (!response.ok) {
-        throw new Error('Falha ao atualizar o status da entrega');
+        throw new Error('Falha ao atualizar o status da entrega na API');
       }
       
-      await fetchData(); // Força a atualização imediata após a mudança de status
+      // Força uma re-busca imediata dos dados para refletir a mudança
+      await fetchData();
 
     } catch (error) {
       console.error("Erro ao atualizar status:", error);
@@ -108,11 +118,11 @@ function DashboardOperacaoEntregas() {
         <main className="flex-grow flex space-x-4 p-4 overflow-x-auto">
           {entregadoresAtivos.length > 0 ? (
             entregadoresAtivos.map(entregador => (
-              <ColunaEntregador
+              <ColunaOperacao
                 key={entregador.id}
                 entregador={entregador}
                 entregas={entregasPorEntregador[entregador.id] || []}
-                onAddEntrega={handleOpenAddModal}
+                onAddEntregaClick={handleAbrirModalEntrega}
                 onUpdateStatus={handleUpdateStatus} // Passa a função para a coluna
               />
             ))
@@ -126,7 +136,13 @@ function DashboardOperacaoEntregas() {
           )}
         </main>
       </div>
-      {isModalOpen && <AdicionarEntregaModal onClose={() => setIsModalOpen(false)} onSave={handleSaveNovaEntrega} />}
+      
+      {isModalEntregaOpen && (
+        <AdicionarEntregaModal 
+          onClose={() => setIsModalEntregaOpen(false)} 
+          onSave={handleSalvarNovaEntrega} 
+        />
+      )}
     </div>
   );
 }
