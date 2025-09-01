@@ -1,11 +1,11 @@
-import React, { useMemo, useState, useEffect } from 'react'; // Adicionado useState e useEffect
-import { Link, useNavigate } from 'react-router-dom';
-import { useAppContext } from '../context/AppContext.jsx'
+import React, { useMemo, useState, useEffect } from 'react';
+import { Link } from 'react-router-dom'; // useNavigate e useOutletContext foram removidos
+import { useAppContext } from '../context/AppContext.jsx';
 import { processarVeiculo } from '../utils/manutencaoLogic.js';
 import { FiPlusCircle, FiTool, FiAlertTriangle, FiCheckCircle } from 'react-icons/fi';
-// Importações do Firebase para ler dados
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase-config';
+// A importação do Header foi removida, pois ele agora está no MainLayout
 
 // --- Componente KpiCard (sem alterações) ---
 function KpiCard({ title, value, icon, className }) {
@@ -56,39 +56,28 @@ function VeiculoRow({ veiculo }) {
 
 // --- Componente Principal do Dashboard ---
 function DashboardManutencao() {
-  const { user, logout } = useAppContext(); // Pegamos apenas 'user' e 'logout'
-  const navigate = useNavigate();
-  
-  // Criamos um estado local para a frota e para o carregamento
+  const { user } = useAppContext();
   const [frota, setFrota] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // useEffect para buscar os dados do Firestore quando o componente montar
   useEffect(() => {
-    if (!user) return; // Se não houver usuário, não faz a busca
-
-    // 1. Define a referência da coleção 'veiculos'
+    if (!user) {
+      setIsLoading(false); // Adicionado para parar o loading se não houver usuário
+      return;
+    }
     const veiculosCollectionRef = collection(db, 'veiculos');
-
-    // 2. Cria a query para buscar apenas os veículos do usuário logado
     const q = query(veiculosCollectionRef, where("userId", "==", user.uid));
-
-    // 3. Usa o onSnapshot para ouvir as alterações em tempo real
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const veiculosData = [];
       querySnapshot.forEach((doc) => {
-        // Adiciona o ID do documento aos dados do veículo
         veiculosData.push({ id: doc.id, ...doc.data() });
       });
-      setFrota(veiculosData); // Atualiza o estado com os dados
-      setIsLoading(false); // Marca o carregamento como concluído
+      setFrota(veiculosData);
+      setIsLoading(false);
     });
-
-    // Função de limpeza: para de ouvir quando o componente for desmontado
     return () => unsubscribe();
-  }, [user]); // Roda o efeito novamente se o usuário mudar
+  }, [user]);
 
-  // A lógica de processamento continua a mesma, mas agora usa o estado local 'frota'
   const frotaProcessada = useMemo(() => {
     return frota.map(veiculo => processarVeiculo(veiculo));
   }, [frota]);
@@ -97,74 +86,61 @@ function DashboardManutencao() {
   const emDia = frotaProcessada.filter(v => v.statusGeral === 'Em dia').length;
   const emAtencao = frotaProcessada.filter(v => v.statusGeral === 'Atenção').length;
   const atrasados = frotaProcessada.filter(v => v.statusGeral === 'Atrasado').length;
-
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
   
-  // Se estiver carregando, mostra uma mensagem
   if (isLoading) {
-    return <div className="flex justify-center items-center min-h-screen"><p>Carregando frota...</p></div>;
+    return (
+        <div className="flex justify-center items-center p-8">
+            <p>Carregando frota...</p>
+        </div>
+    );
   }
 
   return (
-    <div className="bg-gray-100 min-h-screen">
-      <header className="bg-white shadow-sm p-4 flex justify-between items-center">
-        <h1 className="text-xl font-semibold text-gray-800">Dashboard de Manutenção</h1>
-        <div className="flex items-center space-x-4">
-          {/* Usamos user.email pois não temos o nome salvo ainda */}
-          <span className="text-sm">Olá, {user?.email}</span> 
-          <button onClick={handleLogout} className="text-sm text-gray-600 hover:text-red-600">Sair</button>
-        </div>
-      </header>
+    // O componente agora retorna apenas o conteúdo da página, sem a div externa e o header
+    <div className="p-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <KpiCard title="Total de Veículos" value={totalVeiculos} icon={<FiTool />} />
+        <KpiCard title="Manutenção em Dia" value={emDia} icon={<FiCheckCircle className="text-green-500"/>} />
+        <KpiCard title="Requer Atenção" value={emAtencao} icon={<FiAlertTriangle className="text-yellow-500"/>} />
+        <KpiCard title="Manutenção Atrasada" value={atrasados} icon={<FiAlertTriangle className="text-red-500"/>} />
+      </div>
 
-      <main className="p-8">
-        <div className=" grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <KpiCard title="Total de Veículos" value={totalVeiculos} icon={<FiTool />} />
-          <KpiCard title="Manutenção em Dia" value={emDia} icon={<FiCheckCircle className="text-green-500"/>} />
-          <KpiCard title="Requer Atenção" value={emAtencao} icon={<FiAlertTriangle className="text-yellow-500"/>} />
-          <KpiCard title="Manutenção Atrasada" value={atrasados} icon={<FiAlertTriangle className="text-red-500"/>} />
+      <div className="bg-white rounded-lg shadow-md overflow-hidden">
+        <div className="p-4 flex justify-between items-center border-b">
+          <h2 className="text-lg font-semibold">Frota Completa</h2>
+          <Link 
+            to="/manutencao/veiculos/novo"
+            className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+          >
+            <FiPlusCircle />
+            <span>Adicionar Veículo</span>
+          </Link>
         </div>
-
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          <div className="p-4 flex justify-between items-center border-b">
-            <h2 className="text-lg font-semibold">Frota Completa</h2>
-            <Link 
-              to="/manutencao/veiculos/novo"
-              className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-            >
-              <FiPlusCircle />
-              <span>Adicionar Veículo</span>
-            </Link>
-          </div>
-          <table className="w-full text-left text-sm">
-            <thead className="bg-gray-50 text-gray-600 uppercase">
+        <table className="w-full text-left text-sm">
+          <thead className="bg-gray-50 text-gray-600 uppercase">
+            <tr>
+              <th className="p-4">Veículo</th>
+              <th className="p-4">Status Geral</th>
+              <th className="p-4">KM Atual</th>
+              <th className="p-4">Manutenção Mais Urgente</th>
+              <th className="p-4">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {frotaProcessada.length > 0 ? (
+              frotaProcessada.map(veiculo => (
+                <VeiculoRow key={veiculo.id} veiculo={veiculo} />
+              ))
+            ) : (
               <tr>
-                <th className="p-4">Veículo</th>
-                <th className="p-4">Status Geral</th>
-                <th className="p-4">KM Atual</th>
-                <th className="p-4">Manutenção Mais Urgente</th>
-                <th className="p-4">Ações</th>
+                <td colSpan="5" className="text-center p-8 text-gray-500">
+                  Nenhum veículo cadastrado ainda. Comece adicionando um!
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {/* Se não houver veículos, mostra uma mensagem amigável */}
-              {frotaProcessada.length > 0 ? (
-                frotaProcessada.map(veiculo => (
-                  <VeiculoRow key={veiculo.id} veiculo={veiculo} />
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="5" className="text-center p-8 text-gray-500">
-                    Nenhum veículo cadastrado ainda. Comece adicionando um!
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </main>
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

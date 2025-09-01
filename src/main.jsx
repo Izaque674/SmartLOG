@@ -5,21 +5,24 @@ import { createBrowserRouter, RouterProvider, Navigate, Outlet } from 'react-rou
 import './index.css';
 import { AppProvider, useAppContext } from './context/AppContext.jsx';
 
+// Layout
+import MainLayout from './layouts/MainLayout.jsx'; // 1. IMPORTAR O NOVO LAYOUT
+
 // Páginas
 import App from './App.jsx';
-import LoginPage from './pages/loginPage.jsx';
+import LoginPage from './pages/LoginPage.jsx'; // Corrigido para PascalCase
 import RegisterPage from './pages/RegisterPage.jsx';
-import SelectionPage from './pages/SelectionPage.jsx';
+import SelectionPage from './pages/selectionPage.jsx';
 
 // Páginas de Manutenção
-import DashboardManutencao from './pages/dashboardManutencao.jsx';
+import DashboardManutencao from './pages/dashboardManutencao.jsx'; // Corrigido para PascalCase
 import AdicionarVeiculoPage from './pages/AdicionarVeiculoPage.jsx';
 import PaginaInfoVeiculo from './pages/PaginaInfoVeiculo.jsx';
-import PaginaDetalhesJornada from './pages/PaginaDetalhesJornada.jsx';
 
-// Páginas de Entregas (com os novos nomes para clareza)
-import DashboardControleEntregas from './pages/DashboardEntregadores.jsx'; // A página de controle/gestão
-import DashboardOperacaoEntregas from './pages/DashboardEntregas.jsx';    // A página do Kanban (operação)
+// Páginas de Entregas
+import DashboardControleEntregas from './pages/DashboardEntregadores.jsx';
+import DashboardOperacaoEntregas from './pages/DashboardEntregas.jsx';
+import PaginaDetalhesJornada from './pages/PaginaDetalhesJornada.jsx';
 import PaginaHistoricoJornadas from './pages/PaginaHistoricoJornadas.jsx';
 
 
@@ -47,19 +50,24 @@ const router = createBrowserRouter([
       {
         element: <ProtectedRoute />,
         children: [
+          // A Rota de Seleção fica fora do MainLayout
           { index: true, element: <SelectionPage /> },
-          // Rotas de Manutenção
-          { path: 'manutencao/dashboard', element: <DashboardManutencao /> },
-          { path: 'manutencao/veiculo/:id', element: <PaginaInfoVeiculo /> },
-          { path: 'manutencao/veiculos/novo', element: <AdicionarVeiculoPage /> },
-          
-          // --- ROTAS DE ENTREGAS ATUALIZADAS ---
-          // A rota principal agora é o painel de controle
-          { path: 'entregas/controle', element: <DashboardControleEntregas /> },
-          // A rota para a operação ao vivo (Kanban)
-          { path: 'entregas/operacao', element: <DashboardOperacaoEntregas /> },
-          { path: 'entregas/jornada/:jornadaId', element: <PaginaDetalhesJornada /> },
-          { path: 'entregas/historico', element: <PaginaHistoricoJornadas /> },
+
+          // 2. NOVO GRUPO DE ROTAS QUE USARÃO O LAYOUT COM SIDEBAR
+          {
+            element: <MainLayout />, // O MainLayout atua como "molde"
+            children: [
+              // Todas as rotas aqui dentro serão renderizadas dentro do MainLayout
+              { path: 'manutencao/dashboard', element: <DashboardManutencao /> },
+              { path: 'manutencao/veiculo/:id', element: <PaginaInfoVeiculo /> },
+              { path: 'manutencao/veiculos/novo', element: <AdicionarVeiculoPage /> },
+              
+              { path: 'entregas/controle', element: <DashboardControleEntregas /> },
+              { path: 'entregas/operacao', element: <DashboardOperacaoEntregas /> },
+              { path: 'entregas/jornada/:jornadaId', element: <PaginaDetalhesJornada /> },
+              { path: 'entregas/historico', element: <PaginaHistoricoJornadas /> },
+            ]
+          }
         ],
       },
       {
