@@ -10,7 +10,7 @@ import MainLayout from './layouts/MainLayout.jsx'; // 1. IMPORTAR O NOVO LAYOUT
 
 // Páginas
 import App from './App.jsx';
-import LoginPage from './pages/LoginPage.jsx'; // Corrigido para PascalCase
+import LoginPage from './pages/loginPage.jsx'; // Corrigido para PascalCase
 import RegisterPage from './pages/RegisterPage.jsx';
 import SelectionPage from './pages/selectionPage.jsx';
 

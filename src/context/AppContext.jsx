@@ -1,53 +1,72 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { auth } from '../firebase-config'; // Verifique se o caminho está correto
+import { auth } from '../firebase-config';
+
 export const API_URL = 'http://localhost:3001/api';
-
-// 1. Cria o Contexto
 const AppContext = createContext();
-
-// 2. Cria o Provedor
-
 
 export function AppProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [isLoading, setIsLoading] = useState(true); // Controla o carregamento da autenticação
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Efeito para monitorar o estado de autenticação do Firebase
+  // --- LÓGICA DO TEMA ---
+  const [theme, setTheme] = useState(() => {
+    // 1. Tenta ler do localStorage
+    if (typeof window !== 'undefined' && localStorage.theme) {
+      return localStorage.theme;
+    }
+    // 2. Se não, verifica a preferência do sistema operacional
+    if (typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      return 'dark';
+    }
+    // 3. O padrão é 'light'
+    return 'light';
+  });
+
+  // Efeito que aplica a classe 'dark' ao <html> e salva a preferência
   useEffect(() => {
-    // onAuthStateChanged é o "ouvinte" que avisa se o usuário logou ou deslogou
+    const root = window.document.documentElement;
+    
+    // Remove a classe antiga e adiciona a nova
+    root.classList.remove(theme === 'dark' ? 'light' : 'dark');
+    root.classList.add(theme);
+
+    // Salva a preferência no localStorage
+    localStorage.setItem('theme', theme);
+  }, [theme]); // Roda sempre que o estado 'theme' mudar
+
+  const toggleTheme = () => {
+    setTheme(prevTheme => (prevTheme === 'light' ? 'dark' : 'light'));
+  };
+  
+  useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
-      setIsLoading(false); // Marca que a verificação inicial terminou
+      setIsLoading(false);
     });
-
-    // Função de limpeza que é executada quando o componente é desmontado
     return () => unsubscribe();
-  }, []); // O array vazio [] garante que este efeito rode apenas uma vez
+  }, []);
 
-  // Função de logout que usa o Firebase
   const logout = async () => {
     try {
       await signOut(auth);
-      // O onAuthStateChanged irá detectar a mudança e atualizar o 'user' para null
     } catch (error) {
       console.error("Erro ao fazer logout:", error);
     }
   };
 
-  // O valor que será compartilhado com toda a aplicação
   const value = {
     user,
     logout,
-    isLoading, // Compartilha o estado de loading para as rotas
+    isLoading,
+    theme,
+    toggleTheme,
   };
 
-  // Não renderiza nada até que a verificação de autenticação esteja completa
-  // Isso evita que as rotas tentem redirecionar antes da hora
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-screen bg-gray-100">
-        <p className="text-xl font-semibold text-gray-600">Carregando SmartLog...</p>
+      <div className="flex justify-center items-center h-screen bg-gray-100 dark:bg-slate-900">
+        <p className="font-semibold text-gray-600 dark:text-slate-400">Carregando...</p>
       </div>
     );
   }
@@ -59,7 +78,6 @@ export function AppProvider({ children }) {
   );
 }
 
-// 3. Hook customizado para facilitar o uso do contexto
 export function useAppContext() {
   return useContext(AppContext);
 }

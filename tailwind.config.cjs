@@ -4,6 +4,8 @@ module.exports = {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
+  // A propriedade darkMode foi movida para o nível raiz da configuração.
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {

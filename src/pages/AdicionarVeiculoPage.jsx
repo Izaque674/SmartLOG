@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { FiArrowLeft, FiPlus, FiTrash2 } from 'react-icons/fi';
-// Importações do Firebase Firestore
+import { FiPlus, FiTrash2, FiArrowLeft } from 'react-icons/fi';
 import { collection, addDoc } from 'firebase/firestore';
-import { db, auth } from '../firebase-config'; // Importamos o 'db' e 'auth'
+import { db, auth } from '../firebase-config';
 
-// O componente ItemManutencaoInput não precisa de alterações
+// Componente para adicionar itens de manutenção
 function ItemManutencaoInput({ onAddItem }) {
   const [nome, setNome] = useState('');
   const [intervalo, setIntervalo] = useState('');
@@ -26,26 +25,63 @@ function ItemManutencaoInput({ onAddItem }) {
   };
 
   return (
-    <div className="flex items-end space-x-2 p-4 bg-gray-50 rounded-lg border">
+    <div className="flex flex-col gap-4 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-slate-700 dark:bg-slate-800/50 sm:flex-row sm:items-end">
       <div className="flex-1">
-        <label className="block text-sm font-medium text-gray-700">Nome do Serviço</label>
-        <input type="text" value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex: Troca de Óleo" className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md" />
+        <label htmlFor="itemNome" className="block text-sm font-medium text-gray-700 dark:text-slate-300">Nome do Serviço</label>
+        <input 
+          id="itemNome" 
+          type="text" 
+          value={nome} 
+          onChange={(e) => setNome(e.target.value)} 
+          placeholder="Ex: Troca de Óleo" 
+          className="mt-1 w-full rounded-md border-gray-300 bg-white text-sm shadow-sm dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:placeholder:text-slate-400" 
+        />
       </div>
-      <div className="flex-1">
-        <label className="block text-sm font-medium text-gray-700">Intervalo (em KM)</label>
-        <input type="number" value={intervalo} onChange={(e) => setIntervalo(e.target.value)} placeholder="Ex: 10000" className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md" />
+      <div className="flex-1 sm:max-w-xs">
+        <label htmlFor="itemIntervalo" className="block text-sm font-medium text-gray-700 dark:text-slate-300">Intervalo (em KM)</label>
+        <input 
+          id="itemIntervalo" 
+          type="number" 
+          value={intervalo} 
+          onChange={(e) => setIntervalo(e.target.value)} 
+          placeholder="Ex: 10000" 
+          className="mt-1 w-full rounded-md border-gray-300 bg-white text-sm shadow-sm dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:placeholder:text-slate-400" 
+        />
       </div>
-      <button type="button" onClick={handleAddItem} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center space-x-2">
-        <FiPlus /><span>Adicionar</span>
+      <button 
+        type="button" 
+        onClick={handleAddItem} 
+        className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700"
+      >
+        <FiPlus />
+        <span>Adicionar</span>
       </button>
     </div>
   );
 }
 
+// Componente para a linha de um item de manutenção já adicionado
+function ItemAdicionadoRow({ item, onRemove }) {
+  return (
+    <div className="flex items-center justify-between rounded-md bg-blue-50 p-3 text-sm dark:bg-blue-900/20">
+      <p className="font-medium text-blue-800 dark:text-blue-200">
+        {item.nome} - <span className="font-normal text-blue-600 dark:text-blue-300">a cada {item.intervalo_km.toLocaleString('pt-BR')} km</span>
+      </p>
+      <button 
+        type="button" 
+        onClick={onRemove} 
+        className="rounded-full p-1 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30" 
+        title="Remover item"
+      >
+        <FiTrash2 className="h-4 w-4" />
+      </button>
+    </div>
+  );
+}
 
+// --- Componente Principal da Página ---
 function AdicionarVeiculoPage() {
   const navigate = useNavigate();
-  // REMOVEMOS O useAppContext DAQUI POR ENQUANTO
   const [isLoading, setIsLoading] = useState(false);
   const [veiculo, setVeiculo] = useState({ placa: '', modelo: '', ano: '', km_atual: '' });
   const [itensManutencao, setItensManutencao] = useState([]);
@@ -77,24 +113,21 @@ function AdicionarVeiculoPage() {
     }
     
     setIsLoading(true);
-
     const novoVeiculoParaSalvar = {
-      placa: veiculo.placa,
+      placa: veiculo.placa.toUpperCase(),
       modelo: veiculo.modelo,
       ano: parseInt(veiculo.ano, 10),
       km_atual: parseInt(veiculo.km_atual, 10),
       itensDeManutencao: itensManutencao,
-      userId: auth.currentUser.uid, // Associamos o veículo ao usuário logado
+      userId: auth.currentUser.uid,
     };
 
     try {
-      // Usamos a função 'addDoc' para salvar na coleção 'veiculos'
-      const docRef = await addDoc(collection(db, "veiculos"), novoVeiculoParaSalvar);
-      console.log("Veículo salvo com o ID: ", docRef.id);
+      await addDoc(collection(db, "veiculos"), novoVeiculoParaSalvar);
       alert("Veículo adicionado com sucesso!");
       navigate('/manutencao/dashboard');
     } catch (error) {
-      console.error("Erro ao adicionar veículo: ", error);
+      console.error("Erro ao adicionar veículo:", error);
       alert("Falha ao salvar o veículo. Tente novamente.");
     } finally {
       setIsLoading(false);
@@ -102,45 +135,71 @@ function AdicionarVeiculoPage() {
   };
 
   return (
-    <div className="bg-gray-100 min-h-screen">
-      <header className="bg-white shadow-sm p-4 flex items-center space-x-4">
-        <Link to="/manutencao/dashboard" className="text-gray-500 hover:text-gray-800">
-          <FiArrowLeft size={24} />
-        </Link>
-        <h1 className="text-xl font-semibold text-gray-800">Adicionar Novo Veículo</h1>
-      </header>
-      <main className="p-8">
-        <form onSubmit={handleSubmit}>
-          {/* O restante do seu JSX do formulário continua aqui, sem alterações */}
-          <div className="bg-white p-6 rounded-lg shadow-md mb-8">
-            <h2 className="text-lg font-semibold mb-4">Informações do Veículo</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <input name="placa" value={veiculo.placa} onChange={handleInputChange} placeholder="Placa" required className="px-3 py-2 border rounded-md"/>
-              <input name="modelo" value={veiculo.modelo} onChange={handleInputChange} placeholder="Modelo" required className="px-3 py-2 border rounded-md"/>
-              <input name="ano" type="number" value={veiculo.ano} onChange={handleInputChange} placeholder="Ano" required className="px-3 py-2 border rounded-md"/>
-              <input name="km_atual" type="number" value={veiculo.km_atual} onChange={handleInputChange} placeholder="KM Inicial" required className="px-3 py-2 border rounded-md"/>
+    <div className="p-6 sm:p-8">
+      <div className="mx-auto max-w-6xl">
+        
+        {/* --- BOTÃO DE VOLTAR ADICIONADO AQUI --- */}
+  <div className="mb-6">
+  <Link 
+    to="/manutencao/dashboard" 
+    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-700"
+  >
+    <FiArrowLeft className="h-4 w-4" />
+    Voltar para o Dashboard
+  </Link>
+</div>
+
+        <form onSubmit={handleSubmit} className="space-y-8">
+          <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Informações do Veículo</h2>
+            <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2">
+              <div>
+                <label htmlFor="placa" className="block text-sm font-medium">Placa</label>
+                <input id="placa" name="placa" value={veiculo.placa} onChange={handleInputChange} required className="mt-1 w-full rounded-md border-gray-300 shadow-sm dark:border-slate-600 dark:bg-slate-700" />
+              </div>
+              <div>
+                <label htmlFor="modelo" className="block text-sm font-medium">Modelo</label>
+                <input id="modelo" name="modelo" value={veiculo.modelo} onChange={handleInputChange} required className="mt-1 w-full rounded-md border-gray-300 shadow-sm dark:border-slate-600 dark:bg-slate-700" />
+              </div>
+              <div>
+                <label htmlFor="ano" className="block text-sm font-medium">Ano</label>
+                <input id="ano" name="ano" type="number" value={veiculo.ano} onChange={handleInputChange} required className="mt-1 w-full rounded-md border-gray-300 shadow-sm dark:border-slate-600 dark:bg-slate-700" />
+              </div>
+              <div>
+                <label htmlFor="km_atual" className="block text-sm font-medium">KM Inicial</label>
+                <input id="km_atual" name="km_atual" type="number" value={veiculo.km_atual} onChange={handleInputChange} required className="mt-1 w-full rounded-md border-gray-300 shadow-sm dark:border-slate-600 dark:bg-slate-700" />
+              </div>
             </div>
           </div>
-          <div className="bg-white p-6 rounded-lg shadow-md mb-8">
-            <h2 className="text-lg font-semibold mb-4">Plano de Manutenção Preventiva</h2>
-            <div className="space-y-3 mb-4">
+          
+          <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Plano de Manutenção Preventiva</h2>
+            <div className="mt-4 space-y-3">
               {itensManutencao.map(item => (
-                <div key={item.id} className="flex justify-between items-center p-3 bg-blue-50 rounded-md">
-                  <p>{item.nome} - a cada {item.intervalo_km.toLocaleString('pt-BR')} km</p>
-                  <button type="button" onClick={() => handleRemoveItem(item.id)} className="text-red-500 hover:text-red-700"><FiTrash2 /></button>
-                </div>
+                <ItemAdicionadoRow 
+                  key={item.id} 
+                  item={item} 
+                  onRemove={() => handleRemoveItem(item.id)}
+                />
               ))}
-              {itensManutencao.length === 0 && <p className="text-sm text-gray-500 text-center">Nenhum item adicionado ainda.</p>}
+              {itensManutencao.length === 0 && <p className="text-center text-sm text-gray-500 dark:text-slate-400">Nenhum item adicionado ainda.</p>}
             </div>
-            <ItemManutencaoInput onAddItem={handleAddItem} />
+            <div className="mt-4">
+              <ItemManutencaoInput onAddItem={handleAddItem} />
+            </div>
           </div>
+          
           <div className="flex justify-end">
-            <button type="submit" className="px-8 py-3 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 disabled:bg-gray-400" disabled={isLoading}>
+            <button 
+              type="submit" 
+              className="rounded-lg bg-green-600 px-8 py-3 font-bold text-white shadow-sm hover:bg-green-700 disabled:bg-gray-400" 
+              disabled={isLoading}
+            >
               {isLoading ? "Salvando..." : "Salvar Veículo"}
             </button>
           </div>
         </form>
-      </main>
+      </div>
     </div>
   );
 }
