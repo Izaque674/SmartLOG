@@ -1,43 +1,51 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAppContext, API_URL } from '../context/AppContext.jsx';
-import { FiUsers, FiPlusCircle, FiTruck, FiCheckSquare, FiPlay, FiEye, FiLogOut, FiCalendar } from 'react-icons/fi';
+import { FiUsers, FiPlusCircle, FiTruck, FiCheckSquare, FiPlay, FiEye, FiLogOut, FiCalendar, FiMoreVertical } from 'react-icons/fi';
 
 // Modais
 import AdicionarEntregadorModal from '../components/AdicionarEntregadorModal.jsx';
 import PerfilEntregadorModal from '../components/PerfilEntregadorModal.jsx';
 import ConfirmacaoModal from '../components/ConfirmacaoModal.jsx';
 import ResumoJornadaModal from '../components/ResumoJornadaModal.jsx';
-import IniciarJornadaModal from '../components/IniciarJornadaModal.jsx'; // Importa o novo modal
+import IniciarJornadaModal from '../components/IniciarJornadaModal.jsx';
 
 // Novos Componentes do Centro de Comando
 import BlocoStatusJornada from '../components/BlocoStatusJornada.jsx';
 import BlocoProgresso from '../components/BlocoProgresso.jsx';
-import BlocoEquipeAtiva from '../components/BlocoEquipeAtiva.jsx'; // Importa o bloco da equipe
+import BlocoEquipeAtiva from '../components/BlocoEquipeAtiva.jsx';
 
 // Funções do Firebase
 import { collection, query, where, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase-config.js';
 
-// Componentes KpiCard e EntregadorCard (sem alterações)
-function KpiCard({ title, value, icon }) {
+// Componente KpiCard - Atualizado com o novo design
+function KpiCard({ title, value, icon, color = 'bg-gradient-to-br from-indigo-500 to-indigo-700' }) {
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md flex items-center space-x-4">
-      <div className="text-3xl text-blue-500">{icon}</div>
+    <div className="flex items-center gap-4 rounded-2xl border border-gray-200 bg-white/80 p-4 shadow-sm backdrop-blur-sm dark:border-slate-700 dark:bg-slate-800/60">
+      <div className={`rounded-xl p-3 text-white shadow-md ${color}`}>{icon}</div>
       <div>
-        <p className="text-sm text-gray-500">{title}</p>
-        <p className="text-2xl font-bold text-gray-800">{value}</p>
+        <div className="text-sm font-medium text-gray-500 dark:text-slate-400">{title}</div>
+        <div className="mt-1 text-2xl font-bold text-gray-900 dark:text-white">{value}</div>
       </div>
     </div>
   );
 }
 
+// Componente EntregadorCard - Atualizado com o novo design
 function EntregadorCard({ entregador, onClick }) {
   return (
-    <div onClick={onClick} className="bg-white p-4 rounded-lg shadow-md flex flex-col items-center text-center transition-transform transform hover:scale-105 cursor-pointer border hover:border-blue-500 hover:shadow-xl">
-      <img src={entregador.fotoUrl || `https://i.pravatar.cc/80?u=${entregador.id}`} alt={entregador.nome} className="w-20 h-20 rounded-full mb-3 border-2 border-gray-200 object-cover" />
-      <h4 className="font-semibold text-gray-800">{entregador.nome}</h4>
-      <p className="text-xs text-gray-500">{entregador.telefone || 'Sem telefone'}</p>
+    <div
+      onClick={onClick}
+      className="flex flex-col items-center justify-center space-y-2 rounded-xl border border-gray-200 bg-white/70 p-4 shadow-sm backdrop-blur-sm transition-all duration-200 ease-in-out hover:scale-[1.02] hover:border-indigo-400 hover:shadow-lg dark:border-slate-700 dark:bg-slate-800/60 dark:hover:border-indigo-600 cursor-pointer"
+    >
+      <img
+        src={entregador.fotoUrl || `https://i.pravatar.cc/80?u=${entregador.id}`}
+        alt={entregador.nome}
+        className="h-20 w-20 rounded-full border-2 border-indigo-300 object-cover shadow-sm dark:border-indigo-700"
+      />
+      <h4 className="text-base font-semibold text-gray-900 dark:text-white">{entregador.nome}</h4>
+      <p className="text-xs text-gray-500 dark:text-slate-400">{entregador.telefone || 'Sem telefone'}</p>
     </div>
   );
 }
@@ -50,17 +58,28 @@ function DashboardControleEntregas() {
   const [jornadaAtiva, setJornadaAtiva] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [kpis, setKpis] = useState({ entregasConcluidasOntem: '...' });
-  
+
   const [modalAberto, setModalAberto] = useState(null);
   const [entregadorSelecionado, setEntregadorSelecionado] = useState(null);
   const [dadosResumo, setDadosResumo] = useState(null);
-  
+  const [isResumoModalOpen, setIsResumoModalOpen] = useState(false);
+
   const [dadosOperacao, setDadosOperacao] = useState({ entregasAtivas: [], entregadoresAtivos: [] });
 
   useEffect(() => {
     if (!user) { setIsLoading(false); return; }
 
-    const fetchKpis = async () => { /* ...código sem alterações... */ };
+    const fetchKpis = async () => {
+      try {
+        const response = await fetch(`${API_URL}/kpis/${user.uid}`);
+        if (!response.ok) throw new Error('Falha ao buscar KPIs');
+        const data = await response.json();
+        setKpis(data);
+      } catch (error) {
+        console.error("Erro ao buscar KPIs:", error);
+        setKpis({ entregasConcluidasOntem: 'Erro' });
+      }
+    };
     fetchKpis();
 
     const qJornadas = query(collection(db, 'jornadas'), where("userId", "==", user.uid), where("status", "==", "ativa"));
@@ -88,7 +107,7 @@ function DashboardControleEntregas() {
 
   useEffect(() => {
     if (!jornadaAtiva || !user) return;
-    
+
     const fetchOperacaoData = async () => {
       try {
         const response = await fetch(`${API_URL}/operacao/${user.uid}`);
@@ -99,21 +118,24 @@ function DashboardControleEntregas() {
         console.error("Erro ao carregar dados da operação:", error);
       }
     };
-    
+
     fetchOperacaoData();
     const intervalId = setInterval(fetchOperacaoData, 10000);
     return () => clearInterval(intervalId);
 
   }, [jornadaAtiva, user]);
 
-  const handleCloseModal = () => { setModalAberto(null); setEntregadorSelecionado(null); };
+  const handleCloseModal = () => {
+    setModalAberto(null);
+    setEntregadorSelecionado(null);
+    setIsResumoModalOpen(false);
+  };
+
   const handleAbrirPerfil = (entregador) => { setEntregadorSelecionado(entregador); setModalAberto('perfil'); };
   const handleAbrirAdicionar = () => { setEntregadorSelecionado(null); setModalAberto('adicionar'); };
   const handleAbrirEditar = () => { setModalAberto('editar'); };
   const handleAbrirExcluir = () => { setModalAberto('excluir'); };
   const handleAbrirFinalizar = () => { setModalAberto('finalizar'); };
-  
-  // Nova função para abrir o modal de seleção
   const handleAbrirIniciarJornada = () => {
     if (entregadores.length === 0) {
       alert("Adicione pelo menos um entregador à sua equipe antes de iniciar o dia.");
@@ -124,35 +146,17 @@ function DashboardControleEntregas() {
 
   const handleSaveEntregador = async (formData) => {
     const isEditing = modalAberto === 'editar';
-    
-    // Define a URL e o método com base na ação (criar ou editar)
-    const url = isEditing
-      ? `${API_URL}/entregadores/${entregadorSelecionado.id}`
-      : `${API_URL}/entregadores`;
-      
+    const url = isEditing ? `${API_URL}/entregadores/${entregadorSelecionado.id}` : `${API_URL}/entregadores`;
     const method = isEditing ? 'PUT' : 'POST';
-
     try {
-      const response = await fetch(url, {
+      await fetch(url, {
         method: method,
         headers: { 'Content-Type': 'application/json' },
-        // Garante que o userId seja sempre enviado para o backend
         body: JSON.stringify({ ...formData, userId: user.uid }),
       });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Falha ao salvar entregador na API: ${errorText}`);
-      }
-      
-      // Se a operação foi bem-sucedida, o onSnapshot cuidará de atualizar a UI.
-      // Não precisamos chamar fetchData() aqui.
-      
     } catch (error) {
       console.error("Erro ao salvar entregador via API:", error);
-      alert(`Não foi possível salvar o entregador. Causa: ${error.message}`);
     } finally {
-      // Fecha o modal independentemente do resultado
       handleCloseModal();
     }
   };
@@ -160,26 +164,14 @@ function DashboardControleEntregas() {
   const handleDeleteEntregador = async () => {
     if (!entregadorSelecionado) return;
     try {
-      const response = await fetch(`${API_URL}/entregadores/${entregadorSelecionado.id}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Falha ao deletar entregador na API: ${errorText}`);
-      }
-
-      // O onSnapshot cuidará de remover o card da UI.
-
+      await fetch(`${API_URL}/entregadores/${entregadorSelecionado.id}`, { method: 'DELETE' });
     } catch (error) {
       console.error("Erro ao deletar entregador via API:", error);
-      alert(`Não foi possível deletar o entregador. Causa: ${error.message}`);
     } finally {
       handleCloseModal();
     }
   };
 
-  // Função 'Iniciar Dia' agora recebe os IDs do modal
   const handleIniciarDia = async (idsDosEntregadores) => {
     if (!idsDosEntregadores || idsDosEntregadores.length === 0) return;
     await addDoc(collection(db, 'jornadas'), {
@@ -192,7 +184,7 @@ function DashboardControleEntregas() {
     });
     navigate('/entregas/operacao');
   };
-  
+
   const handleFinalizarDia = async () => {
     const idJornadaFinalizada = jornadaAtiva?.id;
     if (!idJornadaFinalizada) return;
@@ -204,89 +196,112 @@ function DashboardControleEntregas() {
       if (!response.ok) throw new Error('Falha ao finalizar jornada');
       const resumo = await response.json();
       setDadosResumo({ ...resumo, jornadaId: idJornadaFinalizada });
-      setModalAberto('resumo'); // Usa o estado geral de modais
+      setModalAberto('resumo');
     } catch (error) {
       console.error("Erro ao finalizar dia:", error);
     }
   };
 
   if (isLoading) {
-    return <div className="flex justify-center items-center h-screen">Carregando Painel de Controle...</div>;
+    return (
+      <div className="flex min-h-screen items-center justify-center p-8 dark:bg-slate-900">
+        <p className="text-gray-700 dark:text-slate-300">Carregando Painel de Controle...</p>
+      </div>
+    );
   }
 
   return (
-    <div className="bg-gray-100 min-h-screen">
-      <header className="bg-white shadow-sm p-4 flex justify-between items-center">
-        <h1 className="text-xl font-semibold text-gray-800">Painel de Controle de Entregas</h1>
-        <div className="flex items-center space-x-4">
-          <span className="text-sm">Olá, {user?.email}</span>
-          <button onClick={logout} className="text-sm text-gray-600 hover:text-red-600">Sair</button>
-        </div>
-      </header>
-      <main className="p-8">
-        
+    <div className="p-6 sm:p-8 dark:bg-slate-900 min-h-screen">
+      <div className="mx-auto max-w-7xl">
         {jornadaAtiva ? (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <BlocoStatusJornada jornada={jornadaAtiva} onFinalizar={handleAbrirFinalizar} />
-            <BlocoProgresso entregas={dadosOperacao.entregasAtivas} />
-            <BlocoEquipeAtiva entregadores={dadosOperacao.entregadoresAtivos} />
-          </div>
+          <>
+            <div className="mb-6">
+              <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white">Centro de Comando</h1>
+              <p className="mt-1 text-base text-gray-500 dark:text-slate-400">Visão geral em tempo real da sua operação de entregas.</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+              <BlocoStatusJornada jornada={jornadaAtiva} onFinalizar={handleAbrirFinalizar} />
+              <BlocoProgresso entregas={dadosOperacao.entregasAtivas} />
+              <BlocoEquipeAtiva entregadores={dadosOperacao.entregadoresAtivos} />
+              {/* Adicione um KPI extra se desejar, ou ajuste o layout */}
+              <KpiCard title="Total Entregadores Ativos" value={dadosOperacao.entregadoresAtivos.length} icon={<FiUsers className="h-6 w-6" />} color="bg-gradient-to-br from-purple-500 to-purple-700" />
+            </div>
+          </>
         ) : (
           <>
-            <div className="text-center mb-8">
-              <button onClick={handleAbrirIniciarJornada} className="bg-green-600 text-white font-bold py-4 px-8 rounded-lg shadow-lg hover:bg-green-700 transition-transform transform hover:scale-105 flex items-center justify-center space-x-3 mx-auto">
-                <FiPlay size={24} /><span>INICIAR DIA DE ENTREGAS</span>
+            <div className="text-center mb-10">
+              
+              <p className="text-lg text-gray-600 dark:text-slate-400 mb-8">Gerencie e otimize suas entregas com eficiência.</p>
+              <button
+                onClick={handleAbrirIniciarJornada}
+                className="inline-flex items-center justify-center gap-3 rounded-full bg-green-600 px-8 py-4 text-lg font-bold text-white shadow-xl transition-all duration-300 ease-in-out hover:bg-green-700 hover:scale-[1.03] focus:outline-none focus:ring-4 focus:ring-green-500 focus:ring-opacity-70 dark:focus:ring-green-700/60"
+              >
+                <FiPlay size={26} /><span>INICIAR DIA DE ENTREGAS</span>
               </button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-              <KpiCard title="Total de Entregadores" value={entregadores.length} icon={<FiUsers />} />
-              <KpiCard title="Entregas Concluídas (Ontem)" value={kpis.entregasConcluidasOntem} icon={<FiCheckSquare />} />
-              <KpiCard title="Entregadores em Rota" value={0} icon={<FiTruck />} />
+              <KpiCard title="Total de Entregadores" value={entregadores.length} icon={<FiUsers className="h-6 w-6" />} color="bg-gradient-to-br from-indigo-500 to-indigo-700" />
+              <KpiCard title="Entregas Concluídas (Ontem)" value={kpis.entregasConcluidasOntem} icon={<FiCheckSquare className="h-6 w-6" />} color="bg-gradient-to-br from-emerald-500 to-green-600" />
+              <KpiCard title="Entregadores em Rota" value={0} icon={<FiTruck className="h-6 w-6" />} color="bg-gradient-to-br from-amber-500 to-yellow-600" />
             </div>
           </>
         )}
-        
-        <div className="bg-white rounded-lg shadow-md">
-          <div className="p-4 flex justify-between items-center border-b">
-            <h2 className="text-lg font-semibold">Sua Equipe</h2>
-            <div className="flex items-center space-x-2">
-              <Link to="/entregas/historico" className="flex items-center space-x-2 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700">
-                <FiCalendar /><span>Ver Histórico</span>
+
+        <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-800">
+          <div className="flex items-center justify-between border-b border-gray-200 p-5 dark:border-slate-700">
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Sua Equipe de Entregadores</h2>
+              <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">Gerencie seus entregadores e adicione novos membros.</p>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <Link
+                to="/entregas/historico"
+                className="inline-flex items-center gap-2 rounded-full bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-all duration-200 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600 dark:focus:ring-slate-500"
+              >
+                <FiCalendar className="h-4 w-4" />
+                <span>Ver Histórico</span>
               </Link>
-              <button onClick={handleAbrirAdicionar} className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
-                <FiPlusCircle /><span>Adicionar Entregador</span>
+              <button
+                onClick={handleAbrirAdicionar}
+                className="inline-flex items-center gap-2 rounded-full bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-md transition-all duration-200 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-slate-950"
+              >
+                <FiPlusCircle className="h-5 w-5" />
+                <span>Adicionar Entregador</span>
               </button>
             </div>
           </div>
-          <div className="p-4 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 p-5">
             {entregadores.length > 0 ? (
-              entregadores.map(entregador => 
-                <EntregadorCard 
-                  key={entregador.id} 
-                  entregador={entregador} 
+              entregadores.map(entregador =>
+                <EntregadorCard
+                  key={entregador.id}
+                  entregador={entregador}
                   onClick={() => handleAbrirPerfil(entregador)}
                 />
               )
             ) : (
-              <p className="col-span-full text-center text-gray-500 py-8">Nenhum entregador cadastrado.</p>
+              <div className="col-span-full py-12 text-center">
+                <p className="mb-4 text-lg font-medium text-gray-600 dark:text-slate-400">Nenhum entregador cadastrado ainda.</p>
+                <button
+                  onClick={handleAbrirAdicionar}
+                  className="inline-flex items-center gap-2 rounded-full bg-indigo-600 px-5 py-2.5 text-white shadow-md transition-all duration-200 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800"
+                >
+                  <FiPlus className="h-5 w-5" /> {/* Use FiPlus para consistência */}
+                  <span className="font-medium">Cadastrar Primeiro Entregador</span>
+                </button>
+              </div>
             )}
           </div>
         </div>
-      </main>
-      
-      {modalAberto === 'perfil' && ( <PerfilEntregadorModal entregador={entregadorSelecionado} onClose={handleCloseModal} onEdit={handleAbrirEditar} onDelete={handleAbrirExcluir} /> )}
-      {(modalAberto === 'adicionar' || modalAberto === 'editar') && ( <AdicionarEntregadorModal onClose={handleCloseModal} onSave={handleSaveEntregador} entregadorExistente={modalAberto === 'editar' ? entregadorSelecionado : null} /> )}
-      {modalAberto === 'excluir' && ( <ConfirmacaoModal titulo="Excluir Entregador" mensagem={`Tem certeza que deseja excluir ${entregadorSelecionado?.nome}?`} onConfirm={handleDeleteEntregador} onCancel={handleCloseModal} isDestructive={true} confirmText="Sim, Excluir" /> )}
-      {modalAberto === 'finalizar' && ( <ConfirmacaoModal titulo="Finalizar Dia de Entregas" mensagem="Tem certeza que deseja finalizar a operação de hoje?" onConfirm={handleFinalizarDia} onCancel={handleCloseModal} confirmText="Sim, Finalizar" isDestructive={true} /> )}
-      {modalAberto === 'resumo' && ( <ResumoJornadaModal resumo={dadosResumo} jornadaId={dadosResumo?.jornadaId} onClose={handleCloseModal} /> )}
+      </div>
 
-      {modalAberto === 'iniciarJornada' && (
-        <IniciarJornadaModal
-          entregadores={entregadores}
-          onClose={handleCloseModal}
-          onIniciar={handleIniciarDia}
-        />
-      )}
+      {modalAberto === 'perfil' && (<PerfilEntregadorModal entregador={entregadorSelecionado} onClose={handleCloseModal} onEdit={handleAbrirEditar} onDelete={handleAbrirExcluir} />)}
+      {modalAberto === 'adicionar' && (<AdicionarEntregadorModal onClose={handleCloseModal} onSave={handleSaveEntregador} entregadorExistente={null} />)}
+      {modalAberto === 'editar' && (<AdicionarEntregadorModal onClose={handleCloseModal} onSave={handleSaveEntregador} entregadorExistente={entregadorSelecionado} />)}
+      {modalAberto === 'excluir' && (<ConfirmacaoModal titulo="Excluir Entregador" mensagem={`Tem certeza que deseja excluir ${entregadorSelecionado?.nome}?`} onConfirm={handleDeleteEntregador} onCancel={handleCloseModal} isDestructive={true} confirmText="Sim, Excluir" />)}
+      {modalAberto === 'finalizar' && (<ConfirmacaoModal titulo="Finalizar Dia de Entregas" mensagem="Tem certeza que deseja finalizar a operação de hoje?" onConfirm={handleFinalizarDia} onCancel={handleCloseModal} confirmText="Sim, Finalizar" isDestructive={true} />)}
+      {modalAberto === 'resumo' && (<ResumoJornadaModal resumo={dadosResumo} jornadaId={dadosResumo?.jornadaId} onClose={handleCloseModal} />)}
+      {modalAberto === 'iniciarJornada' && (<IniciarJornadaModal entregadores={entregadores} onClose={handleCloseModal} onIniciar={handleIniciarDia} />)}
     </div>
   );
 }
