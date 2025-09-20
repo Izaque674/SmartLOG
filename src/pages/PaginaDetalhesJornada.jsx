@@ -1,7 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAppContext, API_URL } from '../context/AppContext.jsx';
-import { FiArrowLeft, FiClipboard, FiCheckCircle, FiXCircle, FiTruck } from 'react-icons/fi';
+import { FiArrowLeft, FiEye, FiEyeOff } from 'react-icons/fi';
+
+// Importa todos os componentes filhos
+import GraficoResumoPizza from '../components/GraficoResumoPizza.jsx';
+import TabelaEntregasJornada from '../components/TabelaEntregasJornada.jsx';
+import LinhaDoTempo from '../components/LinhaDoTempo.jsx';
+import GraficoDesempenhoHora from '../components/GraficoDesempenhoHora.jsx'; // 1. IMPORTAR O NOVO GRÁFICO
 
 // Componente para a linha da tabela de desempenho
 function DesempenhoRow({ entregador, entregas }) {
@@ -27,6 +33,9 @@ function PaginaDetalhesJornada() {
   const { user } = useAppContext();
   const [dados, setDados] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  
+  const [showTeam, setShowTeam] = useState(true);
+  const [showDetalhes, setShowDetalhes] = useState(true);
 
   useEffect(() => {
     if (!user || !jornadaId) return;
@@ -46,7 +55,7 @@ function PaginaDetalhesJornada() {
 
     fetchDetalhes();
   }, [user, jornadaId]);
-
+  
   const entregasPorEntregador = useMemo(() => {
     if (!dados) return {};
     const agrupado = {};
@@ -72,9 +81,8 @@ function PaginaDetalhesJornada() {
 
   return (
     <div className="p-6 sm:p-8">
-      <div className="mx-auto max-w-7xl">
+      <div className="mx-auto max-w-7xl space-y-8">
         
-        {/* --- BOTÃO DE VOLTAR ADICIONADO AQUI --- */}
         <div className="mb-6">
           <Link 
             to="/entregas/historico" 
@@ -85,56 +93,55 @@ function PaginaDetalhesJornada() {
           </Link>
         </div>
 
-        {/* Seção de Resumo/KPIs */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <div className="bg-white p-6 rounded-lg shadow-md text-center dark:bg-slate-800">
-                <FiClipboard size={32} className="mx-auto text-blue-500 mb-2" />
-                <p className="text-sm text-gray-500 dark:text-slate-400">Total de Entregas</p>
-                <p className="text-3xl font-bold text-gray-800 dark:text-white">{dados.jornada.resumo.totalEntregas}</p>
-            </div>
-             <div className="bg-white p-6 rounded-lg shadow-md text-center dark:bg-slate-800">
-                <FiCheckCircle size={32} className="mx-auto text-green-500 mb-2" />
-                <p className="text-sm text-gray-500 dark:text-slate-400">Concluídas</p>
-                <p className="text-3xl font-bold text-gray-800 dark:text-white">{dados.jornada.resumo.concluidas}</p>
-            </div>
-             <div className="bg-white p-6 rounded-lg shadow-md text-center dark:bg-slate-800">
-                <FiXCircle size={32} className="mx-auto text-red-500 mb-2" />
-                <p className="text-sm text-gray-500 dark:text-slate-400">Falhas</p>
-                <p className="text-3xl font-bold text-gray-800 dark:text-white">{dados.jornada.resumo.falhas}</p>
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow-md text-center dark:bg-slate-800">
-                <FiTruck size={32} className="mx-auto text-gray-500 dark:text-slate-400 mb-2" />
-                <p className="text-sm text-gray-500 dark:text-slate-400">Entregadores na Jornada</p>
-                <p className="text-3xl font-bold text-gray-800 dark:text-white">{dados.entregadores.length}</p>
-            </div>
+        {/* --- 2. NOVA SEÇÃO PARA O GRÁFICO DE DESEMPENHO POR HORA --- */}
+        <div className="bg-white rounded-lg shadow-md p-6 dark:bg-slate-800">
+            <h2 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">Desempenho por Hora</h2>
+            <GraficoDesempenhoHora entregas={dados.entregas} jornada={dados.jornada} />
         </div>
 
-        {/* Tabela de Desempenho por Entregador */}
-        <div className="bg-white rounded-lg shadow-md overflow-hidden dark:bg-slate-800">
-            <div className="p-4 border-b border-gray-200 dark:border-slate-700">
-                <h2 className="text-lg font-semibold text-gray-800 dark:text-white">Desempenho da Equipe</h2>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-1 bg-white rounded-lg shadow-md p-6 dark:bg-slate-800">
+              <h2 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">Resumo Visual</h2>
+              <GraficoResumoPizza entregas={dados.entregas} />
             </div>
-            <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm">
-                    <thead className="bg-gray-50 dark:bg-slate-700 text-gray-600 dark:text-slate-300 uppercase">
-                        <tr>
-                            <th className="p-4">Entregador</th>
-                            <th className="p-4 text-center">Total Atribuído</th>
-                            <th className="p-4 text-center">Concluídas</th>
-                            <th className="p-4 text-center">Falhas</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
-                        {dados.entregadores.map(entregador => (
-                            <DesempenhoRow 
-                                key={entregador.id} 
-                                entregador={entregador}
-                                entregas={entregasPorEntregador[entregador.id] || []}
-                            />
-                        ))}
-                    </tbody>
-                </table>
+
+            <div className="lg:col-span-2 bg-white rounded-lg shadow-md overflow-hidden dark:bg-slate-800">
+                <div className="p-4 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between">
+                    <h2 className="text-lg font-semibold text-gray-800 dark:text-white">Desempenho da Equipe</h2>
+                    <button onClick={() => setShowTeam(s => !s)} className="inline-flex items-center gap-2 rounded-md px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 dark:text-slate-300 dark:hover:bg-slate-700">
+                        {showTeam ? <FiEyeOff className="h-4 w-4" /> : <FiEye className="h-4 w-4" />}
+                    </button>
+                </div>
+                {showTeam && (
+                  <div className="overflow-x-auto">
+                      <table className="w-full text-left text-sm">
+                          <thead className="bg-gray-50 dark:bg-slate-700 text-gray-600 dark:text-slate-300 uppercase">
+                              <tr>
+                                  <th className="p-4">Entregador</th>
+                                  <th className="p-4 text-center">Total Atribuído</th>
+                                  <th className="p-4 text-center">Concluídas</th>
+                                  <th className="p-4 text-center">Falhas</th>
+                              </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
+                              {dados.entregadores.map(entregador => (
+                                  <DesempenhoRow key={entregador.id} entregador={entregador} entregas={entregasPorEntregador[entregador.id] || []} />
+                              ))}
+                          </tbody>
+                      </table>
+                  </div>
+                )}
             </div>
+        </div>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-1">
+            <LinhaDoTempo eventos={dados.eventos || []} jornada={dados.jornada} />
+          </div>
+
+          <div className="lg:col-span-2">
+            <TabelaEntregasJornada entregas={dados.entregas} entregadores={dados.entregadores} />
+          </div>
         </div>
       </div>
     </div>
