@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { createBrowserRouter, RouterProvider, Navigate, Outlet } from 'react-router-dom';
+import 'leaflet/dist/leaflet.css';
 
 import './index.css';
 import { AppProvider, useAppContext } from './context/AppContext.jsx';

@@ -7,7 +7,7 @@ import { FiArrowLeft, FiEye, FiEyeOff } from 'react-icons/fi';
 import GraficoResumoPizza from '../components/GraficoResumoPizza.jsx';
 import TabelaEntregasJornada from '../components/TabelaEntregasJornada.jsx';
 import LinhaDoTempo from '../components/LinhaDoTempo.jsx';
-import GraficoDesempenhoHora from '../components/GraficoDesempenhoHora.jsx'; // 1. IMPORTAR O NOVO GRÁFICO
+import GraficoDesempenhoHora from '../components/GraficoComparativo.jsx'; // 1. IMPORTAR O NOVO GRÁFICO
 
 // Componente para a linha da tabela de desempenho
 function DesempenhoRow({ entregador, entregas }) {
