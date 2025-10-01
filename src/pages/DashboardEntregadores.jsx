@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAppContext, API_URL } from '../context/AppContext.jsx';
 import { FiUsers, FiPlusCircle, FiTruck, FiCheckSquare, FiPlay, FiCalendar } from 'react-icons/fi';
-import { MapContainer, TileLayer } from 'react-leaflet';
+
+// Importando APENAS o mapa que você quer usar
+import BlocoMapaBuscaOpenSource from '../components/BlocoMapaBuscaOpenSource.jsx';
 
 // Modais
 import AdicionarEntregadorModal from '../components/AdicionarEntregadorModal.jsx';
@@ -15,7 +17,6 @@ import IniciarJornadaModal from '../components/IniciarJornadaModal.jsx';
 import BlocoStatusJornada from '../components/BlocoStatusJornada.jsx';
 import BlocoProgresso from '../components/BlocoProgresso.jsx';
 import BlocoEquipeAtiva from '../components/BlocoEquipeAtiva.jsx';
-import BlocoMapaBuscaOpenSource from '../components/BlocoMapaBuscaOpenSource.jsx';
 
 // Funções do Firebase
 import { collection, query, where, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
@@ -65,8 +66,6 @@ function DashboardControleEntregas() {
   const [dadosResumo, setDadosResumo] = useState(null);
   const [dadosOperacao, setDadosOperacao] = useState({ entregasAtivas: [], entregadoresAtivos: [] });
   
-  const mapPosition = [-25.4284, -49.2733]; // Posição do mapa (ex: Curitiba)
-
   useEffect(() => {
     if (!user) {
       setIsLoading(false);
@@ -104,7 +103,10 @@ function DashboardControleEntregas() {
   }, [user]);
 
   useEffect(() => {
-    if (!jornadaAtiva || !user) return;
+    if (!jornadaAtiva || !user) {
+        setDadosOperacao({ entregasAtivas: [], entregadoresAtivos: [] });
+        return;
+    };
     const fetchOperacaoData = async () => {
       try {
         const response = await fetch(`${API_URL}/operacao/${user.uid}`);
@@ -124,29 +126,20 @@ function DashboardControleEntregas() {
     setModalAberto(null);
     setEntregadorSelecionado(null);
   };
-
   const handleAbrirPerfil = (entregador) => {
     setEntregadorSelecionado(entregador);
     setModalAberto('perfil');
   };
-  
   const handleAbrirAdicionar = () => {
     setEntregadorSelecionado(null);
     setModalAberto('adicionar');
   };
-  
   const handleAbrirEditar = () => {
     setModalAberto('editar');
   };
-  
   const handleAbrirExcluir = () => {
     setModalAberto('excluir');
   };
-  
-  const handleAbrirFinalizar = () => {
-    setModalAberto('finalizar');
-  };
-  
   const handleAbrirIniciarJornada = () => {
     if (entregadores.length === 0) {
       alert("Adicione pelo menos um entregador à sua equipe antes de iniciar o dia.");
@@ -154,7 +147,6 @@ function DashboardControleEntregas() {
     }
     setModalAberto('iniciarJornada');
   };
-
   const handleSaveEntregador = async (formData) => {
     const isEditing = modalAberto === 'editar';
     const url = isEditing ? `${API_URL}/entregadores/${entregadorSelecionado.id}` : `${API_URL}/entregadores`;
@@ -171,7 +163,6 @@ function DashboardControleEntregas() {
       handleCloseModal();
     }
   };
-
   const handleDeleteEntregador = async () => {
     if (!entregadorSelecionado) return;
     try {
@@ -182,7 +173,6 @@ function DashboardControleEntregas() {
       handleCloseModal();
     }
   };
-
   const handleIniciarDia = async (idsDosEntregadores) => {
     if (!idsDosEntregadores || idsDosEntregadores.length === 0) return;
     await addDoc(collection(db, 'jornadas'), {
@@ -193,9 +183,12 @@ function DashboardControleEntregas() {
       entregadoresIds: idsDosEntregadores,
       resumo: {}
     });
-    navigate('/entregas/operacao');
   };
 
+  // RESTAURANDO AS FUNÇÕES DE FINALIZAR JORNADA
+  const handleAbrirFinalizar = () => {
+    setModalAberto('finalizar');
+  };
   const handleFinalizarDia = async () => {
     const idJornadaFinalizada = jornadaAtiva?.id;
     if (!idJornadaFinalizada) return;
@@ -214,110 +207,97 @@ function DashboardControleEntregas() {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-100 dark:bg-slate-900">
-        <p className="text-gray-700 dark:text-slate-300">Carregando Painel de Controle...</p>
-      </div>
-    );
+    return <div className="flex min-h-screen items-center justify-center bg-slate-100 dark:bg-slate-900"><p>Carregando...</p></div>;
   }
 
-  // LAYOUT QUANDO A JORNADA ESTÁ ATIVA
-  if (jornadaAtiva) {
-    return (
-      <div className="p-6 sm:p-8 dark:bg-slate-900 min-h-screen">
-        <div className="mx-auto max-w-7xl">
-            <div className="mb-6">
-              <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white">Centro de Comando</h1>
-              <p className="mt-1 text-base text-gray-500 dark:text-slate-400">Visão geral em tempo real da sua operação de entregas.</p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+  // A RENDERIZAÇÃO É UNIFICADA, APENAS O CONTEÚDO MUDA
+  return (
+    <div className="p-6 sm:p-8 dark:bg-slate-900 min-h-screen">
+      <div className="mx-auto max-w-7xl">
+        {/* CABEÇALHO DINÂMICO */}
+        {jornadaAtiva ? (
+          <div className="mb-6">
+            <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white">Centro de Comando</h1>
+            <p className="mt-1 text-base text-gray-500 dark:text-slate-400">Visão geral em tempo real da sua operação de entregas.</p>
+          </div>
+        ) : (
+          <div className="text-center mb-10">
+            <h1 className="text-4xl font-extrabold text-gray-900 dark:text-white">Painel de Controle de Entregas</h1>
+            <p className="text-lg text-gray-600 dark:text-slate-400 mt-2 mb-8">Gerencie e otimize suas entregas com eficiência.</p>
+            <button onClick={handleAbrirIniciarJornada} className="inline-flex items-center justify-center gap-3 rounded-full bg-green-600 px-8 py-4 text-lg font-bold text-white shadow-xl transition-all duration-300 ease-in-out hover:bg-green-700 hover:scale-[1.03] focus:outline-none focus:ring-4 focus:ring-green-500/70">
+              <FiPlay size={26} /><span>INICIAR DIA DE ENTREGAS</span>
+            </button>
+          </div>
+        )}
+
+        {/* KPIs DINÂMICOS */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          {jornadaAtiva ? (
+            <>
               <BlocoStatusJornada jornada={jornadaAtiva} onFinalizar={handleAbrirFinalizar} />
               <BlocoProgresso entregas={dadosOperacao.entregasAtivas} />
               <BlocoEquipeAtiva entregadores={dadosOperacao.entregadoresAtivos} />
               <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
                 <h3 className="font-semibold text-gray-800 dark:text-slate-200">Ações Rápidas</h3>
-                <button onClick={() => navigate('/entregas/operacao')} className="mt-4 w-full rounded-lg bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700">Ver Mapa de Operação</button>
-              </div>
-            </div>
-        </div>
-      </div>
-    );
-  }
-
-  // LAYOUT DA TELA INICIAL COM O MAPA EM BLOCO
-  return (
-    <div className="p-6 sm:p-8 dark:bg-slate-900 min-h-screen">
-      <div className="mx-auto max-w-7xl">
-
-        {/* --- CABEÇALHO E BOTÃO DE AÇÃO --- */}
-        <div className="text-center mb-10">
-          <h1 className="text-4xl font-extrabold text-gray-900 dark:text-white">Painel de Controle de Entregas</h1>
-          <p className="text-lg text-gray-600 dark:text-slate-400 mt-2 mb-8">Gerencie e otimize suas entregas com eficiência.</p>
-          <button
-            onClick={handleAbrirIniciarJornada}
-            className="inline-flex items-center justify-center gap-3 rounded-full bg-green-600 px-8 py-4 text-lg font-bold text-white shadow-xl transition-all duration-300 ease-in-out hover:bg-green-700 hover:scale-[1.03] focus:outline-none focus:ring-4 focus:ring-green-500/70"
-          >
-            <FiPlay size={26} /><span>INICIAR DIA DE ENTREGAS</span>
-          </button>
-        </div>
-
-        {/* --- KPIs --- */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <KpiCard title="Total de Entregadores" value={entregadores.length} icon={<FiUsers className="h-6 w-6" />} color="bg-gradient-to-br from-indigo-500 to-indigo-700" />
-          <KpiCard title="Entregas Concluídas (Ontem)" value={kpis.entregasConcluidasOntem} icon={<FiCheckSquare className="h-6 w-6" />} color="bg-gradient-to-br from-emerald-500 to-green-600" />
-          <KpiCard title="Entregadores em Rota" value={0} icon={<FiTruck className="h-6 w-6" />} color="bg-gradient-to-br from-amber-500 to-yellow-600" />
-        </div>
-
-        {/* --- CONTEÚDO PRINCIPAL (EQUIPE E MAPA EM BLOCOS) --- */}
-        <div className="space-y-8">
-
-          {/* BLOCO DA EQUIPE */}
-          <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-800">
-            <div className="flex items-center justify-between border-b border-gray-200 p-5 dark:border-slate-700">
-              <div>
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Sua Equipe de Entregadores</h2>
-                <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">Gerencie seus membros.</p>
-              </div>
-              <div className="flex flex-wrap items-center gap-3">
-                <Link to="/entregas/historico" className="inline-flex items-center gap-2 rounded-full bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-all duration-200 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600 dark:focus:ring-slate-500">
-                  <FiCalendar className="h-4 w-4" /><span>Ver Histórico</span>
-                </Link>
-                <button onClick={handleAbrirAdicionar} className="inline-flex items-center gap-2 rounded-full bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-md transition-all duration-200 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                  <FiPlusCircle className="h-5 w-5" /><span>Adicionar</span>
+                <button onClick={() => navigate('/entregas/operacao')} className="mt-4 w-full rounded-lg bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700">
+                  Ver Operação no Kanban
                 </button>
               </div>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 p-5">
-              {entregadores.length > 0 ? (
-                entregadores.map(entregador =>
-                  <EntregadorCard
-                    key={entregador.id}
-                    entregador={entregador}
-                    onClick={() => handleAbrirPerfil(entregador)}
-                  />
-                )
-              ) : (
-                <div className="col-span-full flex items-center justify-center text-center py-8">
-                   <p className="text-gray-500 dark:text-slate-400">Nenhum entregador cadastrado.</p>
+            </>
+          ) : (
+            <>
+              <KpiCard title="Total de Entregadores" value={entregadores.length} icon={<FiUsers className="h-6 w-6" />} color="bg-gradient-to-br from-indigo-500 to-indigo-700" />
+              <KpiCard title="Entregas Concluídas (Ontem)" value={kpis.entregasConcluidasOntem} icon={<FiCheckSquare className="h-6 w-6" />} color="bg-gradient-to-br from-emerald-500 to-green-600" />
+              <KpiCard title="Entregadores em Rota" value={0} icon={<FiTruck className="h-6 w-6" />} color="bg-gradient-to-br from-amber-500 to-yellow-600" />
+            </>
+          )}
+        </div>
+
+        {/* CONTEÚDO PRINCIPAL SEMPRE VISÍVEL */}
+        <div className="space-y-8">
+          {/* O BLOCO DE EQUIPE SÓ APARECE ANTES DA JORNADA */}
+          {!jornadaAtiva && (
+            <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-800">
+              <div className="flex items-center justify-between border-b border-gray-200 p-5 dark:border-slate-700">
+                <div>
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Sua Equipe de Entregadores</h2>
+                  <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">Gerencie seus membros.</p>
                 </div>
-              )}
+                <div className="flex flex-wrap items-center gap-3">
+                  <Link to="/entregas/historico" className="inline-flex items-center gap-2 rounded-full bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 shadow-sm dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600">
+                    <FiCalendar className="h-4 w-4" /><span>Ver Histórico</span>
+                  </Link>
+                  <button onClick={handleAbrirAdicionar} className="inline-flex items-center gap-2 rounded-full bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-md hover:bg-indigo-700">
+                    <FiPlusCircle className="h-5 w-5" /><span>Adicionar</span>
+                  </button>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 p-5">
+                {entregadores.length > 0 ? (
+                  entregadores.map(entregador =>
+                    <EntregadorCard
+                      key={entregador.id}
+                      entregador={entregador}
+                      onClick={() => handleAbrirPerfil(entregador)}
+                    />
+                  )
+                ) : (
+                  <div className="col-span-full flex items-center justify-center text-center py-8">
+                     <p className="text-gray-500 dark:text-slate-400">Nenhum entregador cadastrado.</p>
+                  </div>
+                )}
+              </div>
             </div>
+          )}
+          
+          {/* O MAPA DE BUSCA APARECE EM AMBAS AS TELAS */}
+          <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-800 h-96 flex flex-col">
+            <BlocoMapaBuscaOpenSource />
           </div>
-
-          {/* BLOCO DO MAPA */}
-<div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-800 h-96 flex flex-col">
-    
-    {/*
-      Toda a lógica de título, mapa, interação, etc.,
-      agora está dentro deste componente, deixando seu Dashboard mais limpo.
-    */}
-    <BlocoMapaBuscaOpenSource />
-
-</div>
         </div>
       </div>
-
-      {/* Seus modais continuam aqui, funcionando perfeitamente */}
+      
+      {/* TODOS OS MODAIS */}
       {modalAberto === 'iniciarJornada' && (<IniciarJornadaModal entregadores={entregadores} onClose={handleCloseModal} onIniciar={handleIniciarDia} />)}
       {modalAberto === 'perfil' && (<PerfilEntregadorModal entregador={entregadorSelecionado} onClose={handleCloseModal} onEdit={handleAbrirEditar} onDelete={handleAbrirExcluir} />)}
       {modalAberto === 'adicionar' && (<AdicionarEntregadorModal onClose={handleCloseModal} onSave={handleSaveEntregador} entregadorExistente={null} />)}

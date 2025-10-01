@@ -12,7 +12,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyCSRdF-Nt9vynPpX4paqtz-maELR-UEYUg",
   authDomain: "smartlog-tcc.firebaseapp.com",
   projectId: "smartlog-tcc",
-  storageBucket: "smartlog-tcc.appspot.com",
+  storageBucket: "smartlog-tcc.firebasestorage.app",
   messagingSenderId: "1088636045543",
   appId: "1:1088636045543:web:f17bdd2c2c9ae178dc3a42"
 };
