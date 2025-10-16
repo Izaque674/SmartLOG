@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAppContext, API_URL } from '../context/AppContext.jsx';
-import { FiUsers, FiPlusCircle, FiTruck, FiCheckSquare, FiPlay, FiCalendar } from 'react-icons/fi';
+import { FiUsers, FiPlusCircle, FiTruck, FiCheckSquare, FiPlay, FiCalendar, FiDollarSign, FiCheckCircle, FiClock, FiTrendingUp } from 'react-icons/fi';
+import toast from 'react-hot-toast';
 
 // Importando APENAS o mapa que você quer usar
 import BlocoMapaBuscaOpenSource from '../components/BlocoMapaBuscaOpenSource.jsx';
@@ -60,29 +61,49 @@ function DashboardControleEntregas() {
   const [entregadores, setEntregadores] = useState([]);
   const [jornadaAtiva, setJornadaAtiva] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [kpis, setKpis] = useState({ entregasConcluidasOntem: '...' });
+  
+  // ✅ ESTADO PARA KPIs DINÂMICOS
+  const [kpis, setKpis] = useState({
+    totalEntregadores: 0,
+    valorRecebido: 0,
+    porcentagemEntregasConcluidas: 0,
+    tempoMedioEntrega: '—'
+  });
+  
   const [modalAberto, setModalAberto] = useState(null);
   const [entregadorSelecionado, setEntregadorSelecionado] = useState(null);
   const [dadosResumo, setDadosResumo] = useState(null);
   const [dadosOperacao, setDadosOperacao] = useState({ entregasAtivas: [], entregadoresAtivos: [] });
-  
+
+  // ✅ FUNÇÃO PARA BUSCAR KPIs DO BACKEND
+  const fetchKpis = async () => {
+    try {
+      if (!user?.uid) return;
+      const response = await fetch(`${API_URL}/kpis/${user.uid}`);
+      if (!response.ok) throw new Error('Erro ao buscar KPIs');
+      const data = await response.json();
+      setKpis({
+        totalEntregadores: data.totalEntregadores ?? 0,
+        valorRecebido: data.valorRecebido ?? 0,
+        porcentagemEntregasConcluidas: data.porcentagemEntregasConcluidas ?? 0,
+        tempoMedioEntrega: data.tempoMedioEntrega ?? '—'
+      });
+    } catch (error) {
+      console.error("Erro ao carregar KPIs:", error);
+    }
+  };
+
   useEffect(() => {
     if (!user) {
       setIsLoading(false);
       return;
     }
-    const fetchKpis = async () => {
-      try {
-        const response = await fetch(`${API_URL}/kpis/${user.uid}`);
-        if (!response.ok) throw new Error('Falha ao buscar KPIs');
-        const data = await response.json();
-        setKpis(data);
-      } catch (error) {
-        console.error("Erro ao buscar KPIs:", error);
-        setKpis({ entregasConcluidasOntem: 'Erro' });
-      }
-    };
+
+    // ✅ BUSCAR KPIs QUANDO O COMPONENTE MONTA
     fetchKpis();
+    
+    // ✅ ATUALIZAR KPIs A CADA 10 SEGUNDOS (OPCIONAL)
+    const kpisIntervalId = setInterval(fetchKpis, 10000);
 
     const qJornadas = query(collection(db, 'jornadas'), where("userId", "==", user.uid), where("status", "==", "ativa"));
     const unsubJornadas = onSnapshot(qJornadas, (snapshot) => {
@@ -92,6 +113,8 @@ function DashboardControleEntregas() {
     const qEntregadores = query(collection(db, 'entregadores'), where("userId", "==", user.uid));
     const unsubEntregadores = onSnapshot(qEntregadores, (snapshot) => {
       setEntregadores(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      // ✅ ATUALIZAR KPIs QUANDO ENTREGADORES MUDAREM
+      fetchKpis();
     });
 
     setIsLoading(false);
@@ -99,14 +122,16 @@ function DashboardControleEntregas() {
     return () => {
       unsubJornadas();
       unsubEntregadores();
+      clearInterval(kpisIntervalId);
     };
   }, [user]);
 
   useEffect(() => {
     if (!jornadaAtiva || !user) {
-        setDadosOperacao({ entregasAtivas: [], entregadoresAtivos: [] });
-        return;
-    };
+      setDadosOperacao({ entregasAtivas: [], entregadoresAtivos: [] });
+      return;
+    }
+    
     const fetchOperacaoData = async () => {
       try {
         const response = await fetch(`${API_URL}/operacao/${user.uid}`);
@@ -117,6 +142,7 @@ function DashboardControleEntregas() {
         console.error("Erro ao carregar dados da operação:", error);
       }
     };
+    
     fetchOperacaoData();
     const intervalId = setInterval(fetchOperacaoData, 10000);
     return () => clearInterval(intervalId);
@@ -126,20 +152,25 @@ function DashboardControleEntregas() {
     setModalAberto(null);
     setEntregadorSelecionado(null);
   };
+  
   const handleAbrirPerfil = (entregador) => {
     setEntregadorSelecionado(entregador);
     setModalAberto('perfil');
   };
+  
   const handleAbrirAdicionar = () => {
     setEntregadorSelecionado(null);
     setModalAberto('adicionar');
   };
+  
   const handleAbrirEditar = () => {
     setModalAberto('editar');
   };
+  
   const handleAbrirExcluir = () => {
     setModalAberto('excluir');
   };
+  
   const handleAbrirIniciarJornada = () => {
     if (entregadores.length === 0) {
       alert("Adicione pelo menos um entregador à sua equipe antes de iniciar o dia.");
@@ -147,32 +178,48 @@ function DashboardControleEntregas() {
     }
     setModalAberto('iniciarJornada');
   };
-  const handleSaveEntregador = async (formData) => {
-    const isEditing = modalAberto === 'editar';
-    const url = isEditing ? `${API_URL}/entregadores/${entregadorSelecionado.id}` : `${API_URL}/entregadores`;
-    const method = isEditing ? 'PUT' : 'POST';
-    try {
-      await fetch(url, {
-        method: method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formData, userId: user.uid }),
-      });
-    } catch (error) {
-      console.error("Erro ao salvar entregador via API:", error);
-    } finally {
-      handleCloseModal();
-    }
-  };
-  const handleDeleteEntregador = async () => {
-    if (!entregadorSelecionado) return;
-    try {
-      await fetch(`${API_URL}/entregadores/${entregadorSelecionado.id}`, { method: 'DELETE' });
-    } catch (error) {
-      console.error("Erro ao deletar entregador via API:", error);
-    } finally {
-      handleCloseModal();
-    }
-  };
+  
+const handleSaveEntregador = async (formData) => {
+  const isEditing = modalAberto === 'editar';
+  const url = isEditing
+    ? `${API_URL}/entregadores/${entregadorSelecionado.id}`
+    : `${API_URL}/entregadores`;
+  const method = isEditing ? 'PUT' : 'POST';
+
+  try {
+    const response = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...formData, userId: user.uid }),
+    });
+    if (!response.ok) throw new Error('Falha ao salvar entregador');
+    toast.success(isEditing ? 'Entregador atualizado com sucesso!' : 'Entregador adicionado com sucesso!');
+    await fetchKpis();
+  } catch (error) {
+    console.error("Erro ao salvar entregador via API:", error);
+    toast.error(error.message || 'Erro ao salvar entregador.');
+  } finally {
+    handleCloseModal();
+  }
+};
+
+const handleDeleteEntregador = async () => {
+  if (!entregadorSelecionado) return;
+  try {
+    const response = await fetch(`${API_URL}/entregadores/${entregadorSelecionado.id}`, {
+      method: 'DELETE'
+    });
+    if (!response.ok) throw new Error('Falha ao excluir entregador');
+    toast.success('Entregador excluído com sucesso!');
+    await fetchKpis();
+  } catch (error) {
+    console.error("Erro ao deletar entregador via API:", error);
+    toast.error(error.message || 'Erro ao excluir entregador.');
+  } finally {
+    handleCloseModal();
+  }
+};
+
   const handleIniciarDia = async (idsDosEntregadores) => {
     if (!idsDosEntregadores || idsDosEntregadores.length === 0) return;
     await addDoc(collection(db, 'jornadas'), {
@@ -185,10 +232,10 @@ function DashboardControleEntregas() {
     });
   };
 
-  // RESTAURANDO AS FUNÇÕES DE FINALIZAR JORNADA
   const handleAbrirFinalizar = () => {
     setModalAberto('finalizar');
   };
+  
   const handleFinalizarDia = async () => {
     const idJornadaFinalizada = jornadaAtiva?.id;
     if (!idJornadaFinalizada) return;
@@ -201,6 +248,8 @@ function DashboardControleEntregas() {
       const resumo = await response.json();
       setDadosResumo({ ...resumo, jornadaId: idJornadaFinalizada });
       setModalAberto('resumo');
+      // ✅ ATUALIZAR KPIs APÓS FINALIZAR JORNADA
+      fetchKpis();
     } catch (error) {
       console.error("Erro ao finalizar dia:", error);
     }
@@ -210,11 +259,10 @@ function DashboardControleEntregas() {
     return <div className="flex min-h-screen items-center justify-center bg-slate-100 dark:bg-slate-900"><p>Carregando...</p></div>;
   }
 
-  // A RENDERIZAÇÃO É UNIFICADA, APENAS O CONTEÚDO MUDA
   return (
     <div className="p-6 sm:p-8 dark:bg-slate-900 min-h-screen">
       <div className="mx-auto max-w-7xl">
-        {/* CABEÇALHO DINÂMICO */}
+
         {jornadaAtiva ? (
           <div className="mb-6">
             <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white">Centro de Comando</h1>
@@ -230,7 +278,7 @@ function DashboardControleEntregas() {
           </div>
         )}
 
-        {/* KPIs DINÂMICOS */}
+        {/* ✅ KPIs DINÂMICOS CORRIGIDOS */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {jornadaAtiva ? (
             <>
@@ -246,16 +294,36 @@ function DashboardControleEntregas() {
             </>
           ) : (
             <>
-              <KpiCard title="Total de Entregadores" value={entregadores.length} icon={<FiUsers className="h-6 w-6" />} color="bg-gradient-to-br from-indigo-500 to-indigo-700" />
-              <KpiCard title="Entregas Concluídas (Ontem)" value={kpis.entregasConcluidasOntem} icon={<FiCheckSquare className="h-6 w-6" />} color="bg-gradient-to-br from-emerald-500 to-green-600" />
-              <KpiCard title="Entregadores em Rota" value={0} icon={<FiTruck className="h-6 w-6" />} color="bg-gradient-to-br from-amber-500 to-yellow-600" />
+              <KpiCard
+                title="Total de Entregadores"
+                value={kpis.totalEntregadores}
+                icon={<FiUsers className="h-6 w-6" />}
+                color="bg-gradient-to-br from-indigo-500 to-purple-700"
+              />
+              <KpiCard
+                title="Valor Recebido"
+                value={`R$ ${kpis.valorRecebido.toFixed(2)}`}
+                icon={<FiDollarSign className="h-6 w-6" />}
+                color="bg-gradient-to-br from-emerald-500 to-green-600"
+              />
+              <KpiCard
+                title="Taxa de Conclusão"
+                value={`${kpis.porcentagemEntregasConcluidas}%`}
+                icon={<FiCheckCircle className="h-6 w-6" />}
+                color="bg-gradient-to-br from-sky-500 to-blue-600"
+              />
+              <KpiCard
+                title="Tempo Médio de Entrega"
+                value={kpis.tempoMedioEntrega}
+                icon={<FiClock className="h-6 w-6" />}
+                color="bg-gradient-to-br from-amber-500 to-yellow-600"
+              />
             </>
           )}
         </div>
 
         {/* CONTEÚDO PRINCIPAL SEMPRE VISÍVEL */}
         <div className="space-y-8">
-          {/* O BLOCO DE EQUIPE SÓ APARECE ANTES DA JORNADA */}
           {!jornadaAtiva && (
             <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-800">
               <div className="flex items-center justify-between border-b border-gray-200 p-5 dark:border-slate-700">
@@ -283,21 +351,19 @@ function DashboardControleEntregas() {
                   )
                 ) : (
                   <div className="col-span-full flex items-center justify-center text-center py-8">
-                     <p className="text-gray-500 dark:text-slate-400">Nenhum entregador cadastrado.</p>
+                    <p className="text-gray-500 dark:text-slate-400">Nenhum entregador cadastrado.</p>
                   </div>
                 )}
               </div>
             </div>
           )}
-          
-          {/* O MAPA DE BUSCA APARECE EM AMBAS AS TELAS */}
+
           <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-800 h-96 flex flex-col">
             <BlocoMapaBuscaOpenSource />
           </div>
         </div>
       </div>
-      
-      {/* TODOS OS MODAIS */}
+
       {modalAberto === 'iniciarJornada' && (<IniciarJornadaModal entregadores={entregadores} onClose={handleCloseModal} onIniciar={handleIniciarDia} />)}
       {modalAberto === 'perfil' && (<PerfilEntregadorModal entregador={entregadorSelecionado} onClose={handleCloseModal} onEdit={handleAbrirEditar} onDelete={handleAbrirExcluir} />)}
       {modalAberto === 'adicionar' && (<AdicionarEntregadorModal onClose={handleCloseModal} onSave={handleSaveEntregador} entregadorExistente={null} />)}

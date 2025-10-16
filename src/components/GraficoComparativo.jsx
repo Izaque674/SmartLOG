@@ -1,22 +1,48 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import Chart from 'react-apexcharts';
 import { useAppContext } from '../context/AppContext';
-import { ClockIcon, ArrowUpIcon, ArrowDownIcon } from '@heroicons/react/24/solid';
+import { FiClock, FiDollarSign, FiArrowDownCircle, FiArrowUpCircle } from 'react-icons/fi';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
+import { motion } from 'framer-motion';
 
-// Safe date
+// Função auxiliar para converter datas com segurança
 function safeToDate(val) {
   if (!val) return null;
   const d = new Date(val);
   return isNaN(d.getTime()) ? null : d;
 }
 
-export default function PainelProdutividade({ entregas = [], jornada = {} }) {
+// Componente auxiliar para os novos KPIs, para manter o código limpo e organizado
+function KpiItem({ label, value, icon, tooltip }) {
+    return (
+        <Tippy content={tooltip} placement="top" animation="shift-away">
+            <motion.div 
+                className="bg-gray-50 dark:bg-slate-700/50 p-4 rounded-xl flex items-center gap-4 transition-transform hover:scale-105 cursor-pointer"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+            >
+                <div className="p-3 bg-gray-200 dark:bg-slate-600 rounded-lg">
+                    {icon}
+                </div>
+                <div>
+                    <p className="text-sm text-gray-500 dark:text-slate-400">{label}</p>
+                    <p className="text-xl font-bold text-gray-900 dark:text-white">{value}</p>
+                </div>
+            </motion.div>
+        </Tippy>
+    );
+}
+
+// --- COMPONENTE PRINCIPAL ---
+export default function PainelDeAnalise({ entregas = [] }) {
   const { theme } = useAppContext();
   const textColor = theme === 'dark' ? '#94a3b8' : '#6b7280';
 
-  // Heatmap data
+  // --- LÓGICA DE PROCESSAMENTO DE DADOS ---
+
+  // 1. Lógica para o Heatmap de Volume por Hora
   const heatmapSeries = useMemo(() => {
     const counts = {};
     entregas.forEach(e => {
@@ -28,119 +54,132 @@ export default function PainelProdutividade({ entregas = [], jornada = {} }) {
     const data = Object.entries(counts)
       .map(([h, c]) => ({ x: `${h}:00`, y: c }))
       .sort((a, b) => a.x.localeCompare(b.x));
-    return [{ name: 'Entregas', data }];
+    return [{ name: 'Tarefas', data }];
   }, [entregas]);
 
-  // Time KPIs
+  // 2. Lógica para os KPIs Financeiros e Operacionais
   const kpis = useMemo(() => {
-    const times = entregas
-      .filter(e => e.status === 'Concluída')
+    const concluidas = entregas.filter(e => e.status === 'Concluída');
+    
+    const totalReceber = concluidas.reduce((sum, e) => sum + (e.valorCobrar || 0), 0);
+    const totalEntregas = concluidas.filter(e => e.tipo === 'Entrega').length;
+    const totalColetas = concluidas.filter(e => e.tipo === 'Coleta').length;
+    
+    const times = concluidas
       .map(e => {
         const i = safeToDate(e.createdAt);
         const f = safeToDate(e.updatedAt);
-        return i && f ? (f - i) / 60000 : null;
+        return i && f ? (f.getTime() - i.getTime()) / 60000 : null;
       })
       .filter(v => v != null);
-    if (!times.length) return { media: '—', melhor: '—', pior: '—' };
-    const avg = Math.round(times.reduce((a, b) => a + b, 0) / times.length);
-    const min = Math.round(Math.min(...times));
-    const max = Math.round(Math.max(...times));
-    return { media: `${avg} min`, melhor: `${min} min`, pior: `${max} min` };
+    
+    const mediaTempo = times.length ? Math.round(times.reduce((a, b) => a + b, 0) / times.length) : 0;
+    
+    return {
+      totalReceber: `R$ ${totalReceber.toFixed(2).replace('.', ',')}`,
+      totalEntregas,
+      totalColetas,
+      mediaTempo: `${mediaTempo} min`
+    };
   }, [entregas]);
 
-  // Heatmap options with hover highlight
-  const heatmapOpts = {
-    chart: { type: 'heatmap', toolbar: { show: false }, animations: { enabled: true, speed: 500 } },
-    plotOptions: {
-      heatmap: {
-        radius: 6,
-        enableShades: true,
-        shadeIntensity: 0.4,
-        colorScale: {
-          ranges: [
-            { from: 0, to: 1, color: '#d1fae5' },
-            { from: 2, to: 3, color: '#a7f3d0' },
-            { from: 4, to: 6, color: '#6ee7b7' },
-            { from: 7, to: 10, color: '#10b981' }
-          ]
-        }
-      }
-    },
-    states: {
-      hover: {
-        filter: {
-          type: 'darken',
-          value: 0.3
-        }
-      }
-    },
+  // 3. Configurações para o Gráfico de Rosca (Donut Chart) de Entregas vs. Coletas
+  const donutSeries = [kpis.totalEntregas, kpis.totalColetas];
+  const donutOptions = {
+    chart: { type: 'donut', background: 'transparent' },
+    labels: ['Entregas', 'Coletas'],
+    colors: ['#3B82F6', '#10B981'],
     dataLabels: { enabled: false },
-    stroke: { width: 0 },
-    theme: { mode: theme },
-    xaxis: {
-      labels: { style: { colors: textColor, fontSize: '12px' } },
-      axisBorder: { show: false },
-      axisTicks: { show: false }
+    legend: {
+      show: true,
+      position: 'bottom',
+      horizontalAlign: 'center',
+      labels: { colors: textColor },
+      markers: { width: 12, height: 12 },
     },
-    yaxis: { show: false },
-    tooltip: { y: { formatter: val => `${val} entregas` } },
-    grid: { padding: { top: 0, right: 0, bottom: 0, left: 0 } }
+    plotOptions: { pie: { donut: { size: '70%' } } },
+    tooltip: { y: { formatter: (val) => `${val} tarefas` } },
+    stroke: { width: 4, colors: [theme === 'dark' ? '#1f2937' : '#ffffff'] },
   };
 
-  // KPI cards data
-  const cards = [
-    {
-      label: 'Tempo Médio',
-      value: kpis.media,
-      icon: <ClockIcon className="h-6 w-6 text-blue-500" />,
-      tooltip: 'Média do tempo de entrega em minutos',
-      bg: 'bg-blue-50 dark:bg-blue-900/20'
-    },
-    {
-      label: 'Melhor Tempo',
-      value: kpis.melhor,
-      icon: <ArrowUpIcon className="h-6 w-6 text-green-500" />,
-      tooltip: 'Melhor tempo registrado',
-      bg: 'bg-green-50 dark:bg-green-900/20'
-    },
-    {
-      label: 'Pior Tempo',
-      value: kpis.pior,
-      icon: <ArrowDownIcon className="h-6 w-6 text-red-500" />,
-      tooltip: 'Maior tempo registrado',
-      bg: 'bg-red-50 dark:bg-red-900/20'
-    }
-  ];
+  // 4. Configurações para o Gráfico de Heatmap
+  const heatmapOpts = {
+    chart: { type: 'heatmap', toolbar: { show: false } },
+    plotOptions: { heatmap: { radius: 6, enableShades: false, colorScale: {
+      ranges: [
+        { from: 0, to: 2, name: 'Baixo', color: '#6ee7b7' },
+        { from: 3, to: 5, name: 'Médio', color: '#3b82f6' },
+        { from: 6, to: 10, name: 'Alto', color: '#f59e0b' },
+        { from: 11, to: 100, name: 'Crítico', color: '#ef4444' }
+      ]
+    }}},
+    dataLabels: { enabled: true, style: { colors: ['#fff'] } },
+    stroke: { width: 4, colors: [theme === 'dark' ? '#374151' : '#f9fafb'] },
+    theme: { mode: theme },
+    xaxis: { labels: { style: { colors: textColor } } },
+    yaxis: { show: false },
+    tooltip: { y: { formatter: val => `${val} tarefas` } },
+    grid: { show: false }
+  };
 
+  // --- RENDERIZAÇÃO DO COMPONENTE ---
   return (
     <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
       <h3 className="text-2xl font-semibold text-gray-900 dark:text-white">
-        Análise de Produtividade
+        Análise da Jornada
       </h3>
+
+      {/* Seção Superior: Heatmap e Gráfico de Rosca */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Heatmap */}
-        <div className="bg-gray-50 dark:bg-slate-700 p-4 rounded-xl">
-          <h4 className="text-gray-700 dark:text-slate-300 mb-2">Volume por Hora</h4>
+        <div className="bg-gray-50 dark:bg-slate-900/50 p-4 rounded-xl">
+          <h4 className="font-semibold text-gray-700 dark:text-slate-300 mb-2">Volume por Hora</h4>
           {heatmapSeries[0].data.length > 0 ? (
-            <Chart options={heatmapOpts} series={heatmapSeries} type="heatmap" height={200} />
-          ) : (
-            <div className="h-48 flex items-center justify-center text-gray-400 dark:text-slate-500">
-              Sem dados de volume
-            </div>
+            <Chart options={heatmapOpts} series={heatmapSeries} type="heatmap" height={150} />
+          ) : ( 
+            <div className="h-[150px] flex items-center justify-center text-sm text-gray-400 dark:text-slate-500">
+              Sem dados de volume para exibir.
+            </div> 
           )}
         </div>
-        {/* KPI Cards Interativos */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {cards.map((c, idx) => (
-            <Tippy key={idx} content={c.tooltip} placement="top">
-              <div className={`${c.bg} p-4 rounded-xl flex flex-col items-center justify-center hover:scale-105 transition-transform`}>
-                {c.icon}
-                <p className="mt-2 text-sm text-gray-500 dark:text-slate-400">{c.label}</p>
-                <p className="text-lg font-bold text-gray-900 dark:text-white">{c.value}</p>
-              </div>
-            </Tippy>
-          ))}
+
+        <div className="bg-gray-50 dark:bg-slate-900/50 p-4 rounded-xl">
+          <h4 className="font-semibold text-gray-700 dark:text-slate-300 mb-2">Fluxo de Tarefas</h4>
+          {kpis.totalEntregas > 0 || kpis.totalColetas > 0 ? (
+            <Chart options={donutOptions} series={donutSeries} type="donut" height={150} />
+          ) : ( 
+            <div className="h-[150px] flex items-center justify-center text-sm text-gray-400 dark:text-slate-500">
+              Nenhuma tarefa concluída ainda.
+            </div> 
+          )}
         </div>
+      </div>
+
+      {/* Seção Inferior: KPIs Financeiros e de Eficiência */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <KpiItem 
+          label="A Receber (Concluído)" 
+          value={kpis.totalReceber} 
+          icon={<FiDollarSign className="h-6 w-6 text-emerald-500" />} 
+          tooltip="Soma dos valores a cobrar de tarefas concluídas"
+        />
+        <KpiItem 
+          label="Entregas Concluídas" 
+          value={kpis.totalEntregas} 
+          icon={<FiArrowUpCircle className="h-6 w-6 text-blue-500" />}
+          tooltip="Total de tarefas do tipo 'Entrega' concluídas com sucesso"
+        />
+        <KpiItem 
+          label="Coletas Concluídas" 
+          value={kpis.totalColetas} 
+          icon={<FiArrowDownCircle className="h-6 w-6 text-green-500" />}
+          tooltip="Total de tarefas do tipo 'Coleta' concluídas com sucesso"
+        />
+        <KpiItem 
+          label="Tempo Médio" 
+          value={kpis.mediaTempo} 
+          icon={<FiClock className="h-6 w-6 text-amber-500" />}
+          tooltip="Tempo médio para concluir uma tarefa (entrega ou coleta)"
+        />
       </div>
     </div>
   );

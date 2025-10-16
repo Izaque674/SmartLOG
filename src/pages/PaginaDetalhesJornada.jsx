@@ -7,7 +7,8 @@ import { FiArrowLeft, FiEye, FiEyeOff } from 'react-icons/fi';
 import GraficoResumoPizza from '../components/GraficoResumoPizza.jsx';
 import TabelaEntregasJornada from '../components/TabelaEntregasJornada.jsx';
 import LinhaDoTempo from '../components/LinhaDoTempo.jsx';
-import GraficoDesempenhoHora from '../components/GraficoComparativo.jsx'; // 1. IMPORTAR O NOVO GRÁFICO
+import GraficoDesempenhoHora from '../components/GraficoComparativo.jsx'; // 
+import GraficoDesempenhoEquipe from '../components/graficoDesempenhoEquipe.jsx'; // Novo gráfico de barras
 
 // Componente para a linha da tabela de desempenho
 function DesempenhoRow({ entregador, entregas }) {
@@ -100,49 +101,30 @@ function PaginaDetalhesJornada() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-1 bg-white rounded-lg shadow-md p-6 dark:bg-slate-800">
-              <h2 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">Resumo Visual</h2>
-              <GraficoResumoPizza entregas={dados.entregas} />
-            </div>
+  {/* COLUNA ESQUERDA - RESUMO PIZZA */}
+  <div className="lg:col-span-1 bg-white rounded-lg shadow-md p-6 dark:bg-slate-800">
+    <h2 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">Resumo Visual</h2>
+    {/* Passamos as novas props de tipo e valor */}
+    <GraficoResumoPizza entregas={dados.entregas} /> 
+  </div>
 
-            <div className="lg:col-span-2 bg-white rounded-lg shadow-md overflow-hidden dark:bg-slate-800">
-                <div className="p-4 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between">
-                    <h2 className="text-lg font-semibold text-gray-800 dark:text-white">Desempenho da Equipe</h2>
-                    <button onClick={() => setShowTeam(s => !s)} className="inline-flex items-center gap-2 rounded-md px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 dark:text-slate-300 dark:hover:bg-slate-700">
-                        {showTeam ? <FiEyeOff className="h-4 w-4" /> : <FiEye className="h-4 w-4" />}
-                    </button>
-                </div>
-                {showTeam && (
-                  <div className="overflow-x-auto">
-                      <table className="w-full text-left text-sm">
-                          <thead className="bg-gray-50 dark:bg-slate-700 text-gray-600 dark:text-slate-300 uppercase">
-                              <tr>
-                                  <th className="p-4">Entregador</th>
-                                  <th className="p-4 text-center">Total Atribuído</th>
-                                  <th className="p-4 text-center">Concluídas</th>
-                                  <th className="p-4 text-center">Falhas</th>
-                              </tr>
-                          </thead>
-                          <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
-                              {dados.entregadores.map(entregador => (
-                                  <DesempenhoRow key={entregador.id} entregador={entregador} entregas={entregasPorEntregador[entregador.id] || []} />
-                              ))}
-                          </tbody>
-                      </table>
-                  </div>
-                )}
-            </div>
-        </div>
-        
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-1">
-            <LinhaDoTempo eventos={dados.eventos || []} jornada={dados.jornada} />
-          </div>
+  {/* COLUNA DIREITA - NOVO GRÁFICO DE BARRAS */}
+  <div className="lg:col-span-2 bg-white rounded-lg shadow-md overflow-hidden dark:bg-slate-800">
+    <GraficoDesempenhoEquipe 
+      entregadores={dados.entregadores}
+      entregas={dados.entregas}
+    />
+  </div>
+</div>
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
+  <div className="lg:col-span-1">
+    <LinhaDoTempo eventos={dados.eventos || []} jornada={dados.jornada} />
+  </div>
 
-          <div className="lg:col-span-2">
-            <TabelaEntregasJornada entregas={dados.entregas} entregadores={dados.entregadores} />
-          </div>
-        </div>
+  <div className="lg:col-span-2">
+    <TabelaEntregasJornada entregas={dados.entregas} entregadores={dados.entregadores} />
+  </div>
+</div>
       </div>
     </div>
   );

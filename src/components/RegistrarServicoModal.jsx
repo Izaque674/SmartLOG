@@ -1,6 +1,14 @@
 import React, { useState } from 'react';
 
 function RegistrarServicoModal({ item, veiculoKm, onClose, onSave }) {
+  
+  // --- A CORREÇÃO ESTÁ AQUI ---
+  // Se o 'item' não for passado para o modal, ele não tenta renderizar nada e evita o erro.
+  if (!item) {
+    return null; 
+  }
+  // --- FIM DA CORREÇÃO ---
+
   // Inicializamos o formulário com dados padrão
   const [formData, setFormData] = useState({
     data: new Date().toISOString().split('T')[0], // Pega a data de hoje no formato YYYY-MM-DD
@@ -40,6 +48,7 @@ function RegistrarServicoModal({ item, veiculoKm, onClose, onSave }) {
       <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-lg">
         <form onSubmit={handleSubmit}>
           <h2 className="text-xl font-bold mb-2">Registrar Serviço Realizado</h2>
+          {/* Agora esta linha é segura, pois já verificamos que 'item' existe */}
           <p className="text-gray-600 mb-4">Item: <span className="font-semibold">{item.nome}</span></p>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

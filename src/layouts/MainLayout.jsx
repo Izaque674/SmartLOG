@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import Header from '../components/Header.jsx';
 import Sidebar from '../components/Sidebar.jsx';
+import { useAppContext } from '../context/AppContext.jsx';
+import DynamicBackground from '../components/DynamicBackground.jsx'; // importa o background
 
 const getPageTitle = (pathname) => {
   if (pathname.startsWith('/manutencao')) return 'Dashboard de Manutenção';
@@ -17,20 +19,21 @@ function MainLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const location = useLocation();
   const pageTitle = getPageTitle(location.pathname);
+  const { theme } = useAppContext();
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-slate-900">
+    <div className="relative min-h-screen">
+      <DynamicBackground />
       <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
-      
-      {/* O container principal não precisa mais do padding condicional */}
-      <div className="flex-1">
+
+      <div className="flex-1 relative z-10">
         <Header title={pageTitle} onMenuClick={() => setIsSidebarOpen(true)} />
-        
-        <main>
+        <main className="p-6">
           <Outlet />
         </main>
       </div>
     </div>
   );
 }
+
 export default MainLayout;

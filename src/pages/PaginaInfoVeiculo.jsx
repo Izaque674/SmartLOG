@@ -15,7 +15,6 @@ import RegistrarServicoModal from '../components/RegistrarServicoModal.jsx';
 import { doc, onSnapshot, updateDoc, deleteDoc, collection, addDoc, query, orderBy, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase-config';
 
-// Componente Card de Item de Manutenção
 function ItemManutencaoCard({ item, onRegistrar, onEdit, onDelete }) {
   const statusStyles = {
     'Em dia': { bg: 'dark:bg-green-900/20 bg-green-50', border: 'border-green-500', icon: <FiCheckCircle className="text-green-500" /> },
@@ -51,7 +50,6 @@ function ItemManutencaoCard({ item, onRegistrar, onEdit, onDelete }) {
   );
 }
 
-// Componente Linha da Tabela de Histórico
 function HistoricoRow({ registro }) {
   const dataFormatada = new Date(registro.data).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
   return (
@@ -65,7 +63,17 @@ function HistoricoRow({ registro }) {
   );
 }
 
-// --- Componente Principal da Página ---
+// NOVO: componente visual para foto
+function VeiculoFotoVis({ fotoUrl, modelo, placa }) {
+  return (
+    <div className="w-40 h-28 mx-auto sm:mx-0 mb-5 sm:mb-0 rounded-2xl overflow-hidden border-2 border-indigo-200 dark:border-slate-700 shadow group bg-gray-100 dark:bg-slate-700 flex items-center justify-center">
+      {fotoUrl
+        ? <img src={fotoUrl} alt={modelo || placa} className="object-cover w-full h-full group-hover:scale-105 transition-transform" />
+        : <FiTool className="w-12 h-12 text-gray-400" />}
+    </div>
+  );
+}
+
 function PaginaInfoVeiculo() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -90,7 +98,7 @@ function PaginaInfoVeiculo() {
         setVeiculo({ id: doc.id, ...doc.data() });
       } else {
         setVeiculo(null);
-        navigate('/manutencao/dashboard'); // Volta se o veículo for deletado
+        navigate('/manutencao/dashboard');
       }
     });
 
@@ -172,45 +180,45 @@ function PaginaInfoVeiculo() {
         </div>
 
         <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800 mb-8">
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{veiculoProcessado.modelo}</h2>
-              <p className="text-gray-500 dark:text-slate-400">Placa: {veiculoProcessado.placa} | Ano: {veiculoProcessado.ano}</p>
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-6">
+            {/* FOTO HORIZONTAL DESTAQUE */}
+            <VeiculoFotoVis fotoUrl={veiculoProcessado.fotoUrl} modelo={veiculoProcessado.modelo} placa={veiculoProcessado.placa} />
+            <div className="flex-1">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{veiculoProcessado.modelo}</h2>
+                  <p className="text-gray-500 dark:text-slate-400">Placa: {veiculoProcessado.placa} | Ano: {veiculoProcessado.ano}</p>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <button
+                    onClick={() => toggleModal('editVeiculo')}
+                    className="flex items-center justify-center px-4 py-2 rounded-md bg-blue-500 text-white hover:bg-blue-600 focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75"
+                    aria-label="Editar veículo"
+                  >
+                    <FiEdit className="mr-2" />
+                    <span>Editar</span>
+                  </button>
+                  <button
+                    onClick={() => toggleModal('km')}
+                    className="flex items-center justify-center px-4 py-2 rounded-md bg-green-500 text-white hover:bg-green-600 focus:ring-2 focus:ring-green-400 focus:ring-opacity-75"
+                  >
+                    <FiRefreshCw className="mr-2" />
+                    <span>Atualizar KM</span>
+                  </button>
+                  <button
+                    onClick={() => toggleModal('deleteVeiculo')}
+                    className="flex items-center justify-center px-4 py-2 rounded-md bg-red-500 text-white hover:bg-red-600 focus:ring-2 focus:ring-red-400 focus:ring-opacity-75"
+                  >
+                    <FiTrash2 className="mr-2" />
+                    <span>Excluir</span>
+                  </button>
+                </div>
+              </div>
+              <div className="mt-4 pt-4 border-t border-gray-200 dark:border-slate-700">
+                <p className="text-gray-500 dark:text-slate-400">Quilometragem Atual</p>
+                <p className="font-bold text-3xl text-blue-600">{veiculoProcessado.km_atual.toLocaleString('pt-BR')} km</p>
+              </div>
             </div>
-
-
-<div className="flex items-center space-x-3">
-  <button
-    onClick={() => toggleModal('editVeiculo')}
-    className="flex items-center justify-center px-4 py-2 rounded-md bg-blue-500 text-white hover:bg-blue-600 transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75"
-    aria-label="Editar veículo"
-  >
-    <FiEdit className="mr-2" />
-    <span>Editar</span>
-  </button>
-
-  <button
-    onClick={() => toggleModal('km')}
-    className="flex items-center justify-center px-4 py-2 rounded-md bg-green-500 text-white hover:bg-green-600 transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-opacity-75"
-    aria-label="Atualizar quilometragem"
-  >
-    <FiRefreshCw className="mr-2" />
-    <span>Atualizar KM</span>
-  </button>
-
-  <button
-    onClick={() => toggleModal('deleteVeiculo')}
-    className="flex items-center justify-center px-4 py-2 rounded-md bg-red-500 text-white hover:bg-red-600 transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-opacity-75"
-    aria-label="Excluir veículo"
-  >
-    <FiTrash2 className="mr-2" />
-    <span>Excluir</span>
-  </button>
-</div>
-          </div>
-          <div className="mt-4 pt-4 border-t border-gray-200 dark:border-slate-700">
-            <p className="text-gray-500 dark:text-slate-400">Quilometragem Atual</p>
-            <p className="font-bold text-3xl text-blue-600">{veiculoProcessado.km_atual.toLocaleString('pt-BR')} km</p>
           </div>
         </div>
 
