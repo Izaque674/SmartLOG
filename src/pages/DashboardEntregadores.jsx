@@ -278,19 +278,13 @@ const handleDeleteEntregador = async () => {
           </div>
         )}
 
-        {/* ✅ KPIs DINÂMICOS CORRIGIDOS */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {jornadaAtiva ? (
             <>
               <BlocoStatusJornada jornada={jornadaAtiva} onFinalizar={handleAbrirFinalizar} />
               <BlocoProgresso entregas={dadosOperacao.entregasAtivas} />
               <BlocoEquipeAtiva entregadores={dadosOperacao.entregadoresAtivos} />
-              <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
-                <h3 className="font-semibold text-gray-800 dark:text-slate-200">Ações Rápidas</h3>
-                <button onClick={() => navigate('/entregas/operacao')} className="mt-4 w-full rounded-lg bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700">
-                  Ver Operação no Kanban
-                </button>
-              </div>
+
             </>
           ) : (
             <>

@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-// IMPORTAMOS O 'Link' DO REACT-ROUTER-DOM
 import { useNavigate, Link } from 'react-router-dom';
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from '../firebase-config.js';
 import loginBg from '../assets/login-bg.jpg';
 import { FiEye, FiEyeOff } from 'react-icons/fi';
+
+import logoImage from '../assets/LOGO1.png'; // Sua importação está correta
 
 function LoginPage() {
   const [email, setEmail] = useState('');
@@ -55,8 +56,14 @@ function LoginPage() {
           onSubmit={handleSubmit}
           className="bg-white p-8 rounded-2xl shadow-lg space-y-5 text-brand-text"
         >
-          {/* ... o restante do formulário permanece igual ... */}
-          <div className="text-center mb-6">
+          {/* --- A CORREÇÃO ESTÁ AQUI --- */}
+          {/* O logo foi movido para DENTRO do formulário, no topo */}
+          <div className="flex justify-center mb-6">
+            <img src={logoImage} alt="Logo SmartLog" className="h-16 w-auto" /> 
+            {/* Aumentei um pouco a altura para h-16, ajuste se necessário */}
+          </div>
+          
+          <div className="text-center">
             <h1 className="text-3xl font-bold text-brand-text">Bem-vindo de volta</h1>
             <p className="mt-1 text-brand-subtext">Faça login para continuar</p>
           </div>
@@ -90,7 +97,6 @@ function LoginPage() {
           
           <p className="text-center text-sm text-brand-subtext pt-4">
             Não tem uma conta?{' '}
-            {/* CORRIGIMOS A TAG 'a' PARA USAR O 'Link' DO REACT-ROUTER */}
             <Link to="/register" className="font-semibold text-blue-600 hover:underline">Crie uma agora</Link>
           </p>
         </form>

@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
-import { auth } from '../firebase-config.js';
+import { auth, db } from '../firebase-config.js'; // Firestore importado aqui!
 import loginBg from '../assets/login-bg.jpg';
-import { FiEye, FiEyeOff } from 'react-icons/fi'; // Mantive os ícones de olho
+import { FiEye, FiEyeOff } from 'react-icons/fi';
 
 function RegisterPage() {
   const [nome, setNome] = useState('');
@@ -43,6 +43,15 @@ function RegisterPage() {
         displayName: nome,
       });
 
+      // Adição no Firestore
+      await db.collection("usuarios")
+        .doc(userCredential.user.uid)
+        .set({
+          nome,
+          email,
+          createdAt: new Date()
+        });
+      
       navigate('/');
 
     } catch (err) {
@@ -60,7 +69,6 @@ function RegisterPage() {
   };
 
   return (
-    // Estrutura externa (fundo) - IDÊNTICA à LoginPage
     <div className="relative min-h-screen w-full flex items-center justify-center p-4">
       <div 
         className="absolute inset-0 w-full h-full bg-cover bg-center"
@@ -72,7 +80,6 @@ function RegisterPage() {
       <div className="relative z-10 w-full max-w-sm">
         <form 
           onSubmit={handleSubmit}
-          // Formulário com os mesmos estilos base da LoginPage
           className="bg-white p-8 rounded-2xl shadow-lg space-y-5 text-brand-text"
         >
           <div className="text-center mb-6">
@@ -80,19 +87,16 @@ function RegisterPage() {
             <p className="mt-1 text-brand-subtext">Vamos começar</p>
           </div>
           
-          {/* CAMPO NOME */}
           <div>
             <label htmlFor="nome" className="block text-sm font-medium text-brand-subtext mb-1">Nome</label>
             <input id="nome" type="text" value={nome} onChange={(e) => setNome(e.target.value)} className="w-full px-4 py-3 bg-gray-100 border-transparent rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-peach" placeholder="Seu nome completo" required disabled={isLoading} />
           </div>
 
-          {/* CAMPO EMAIL (estilos idênticos) */}
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-brand-subtext mb-1">E-mail</label>
             <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-4 py-3 bg-gray-100 border-transparent rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-peach" placeholder="seu.email@empresa.com" required disabled={isLoading} />
           </div>
           
-          {/* CAMPO SENHA (estilos idênticos) */}
           <div className="relative">
             <label htmlFor="password" className="block text-sm font-medium text-brand-subtext mb-1">Senha</label>
             <input id="password" type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-4 py-3 bg-gray-100 border-transparent rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-peach" placeholder="Mínimo 6 caracteres" required disabled={isLoading} />
@@ -101,7 +105,6 @@ function RegisterPage() {
             </button>
           </div>
 
-          {/* CAMPO CONFIRMAR SENHA */}
           <div className="relative">
             <label htmlFor="confirmPassword" className="block text-sm font-medium text-brand-subtext mb-1">Confirme sua Senha</label>
             <input id="confirmPassword" type={showConfirmPassword ? 'text' : 'password'} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full px-4 py-3 bg-gray-100 border-transparent rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-peach" placeholder="Digite a senha novamente" required disabled={isLoading} />
@@ -112,7 +115,6 @@ function RegisterPage() {
 
           {error && <p className="text-sm text-red-600 text-center">{error}</p>}
           
-          {/* BOTÃO DE SUBMIT (estilos idênticos) */}
           <button 
             type="submit" 
             className="w-full py-3 font-bold text-white bg-brand-peach rounded-lg hover:bg-brand-peach-dark active:scale-95 transition-all disabled:bg-gray-400"
@@ -121,7 +123,6 @@ function RegisterPage() {
             {isLoading ? 'Criando conta...' : 'Cadastrar'}
           </button>
           
-          {/* LINK PARA LOGIN (estilos idênticos) */}
           <p className="text-center text-sm text-brand-subtext pt-4">
             Já tem uma conta?{' '}
             <Link to="/login" className="font-semibold text-blue-600 hover:underline">Faça login</Link>

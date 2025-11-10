@@ -101,7 +101,7 @@ function VeiculoRow({ veiculo }) {
   const statusClass = statusStyles[veiculo.statusGeral] || statusStyles.Erro;
 
   return (
-    <tr className="hover:bg-gray-50 dark:hover:bg-slate-900 transition-colors">
+    <tr className="hover:bg-gray-50 dark:hover:bg-slate-900 transition-colors dark:text-white">
       <td className="p-4">
         <div className="font-semibold">{veiculo.placa}</div>
         <div className="text-sm text-gray-500">{veiculo.modelo}</div>
@@ -138,7 +138,7 @@ function CarrosselVeiculos({ frota }) {
   }
   return (
     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-6">
-      <h2 className="text-xl font-semibold mb-4">Garagem Virtual</h2>
+      <h2 className="text-xl font-semibold mb-4 dark:text-white">Garagem Virtual</h2>
       <Swiper
         effect={'coverflow'}
         grabCursor
@@ -217,22 +217,50 @@ export default function DashboardManutencao() {
 
   const handleSearch = useCallback((val) => startTransition(() => setQueryText(val)), []);
 
-  const filtered = useMemo(() => {
-    const q = queryText.toLowerCase();
-    return frotaProcessada.filter((v) => {
-      if (filterStatus !== 'all' && v.statusGeral.toLowerCase() !== filterStatus) return false;
-      if (!q) return true;
-      return `${v.placa} ${v.modelo}`.toLowerCase().includes(q);
-    });
-  }, [frotaProcessada, queryText, filterStatus]);
+const removeDiacritics = str =>
+  str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
-  const stats = useMemo(() => {
-    const total = frotaProcessada.length;
-    const emDia = frotaProcessada.filter((v) => v.statusGeral === 'Em dia').length;
-    const atento = frotaProcessada.filter((v) => v.statusGeral === 'Atenção').length;
-    const atrasado = frotaProcessada.filter((v) => v.statusGeral === 'Atrasado').length;
-    return { total, emDia, atento, atrasado };
-  }, [frotaProcessada]);
+// Helper: remove acentos e todos os espaços, deixa tudo minúsculo
+const normalize = (str) =>
+  (str || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")   // remove acentos
+    .replace(/\s/g, "");               // remove TODOS espaços
+
+const filtered = useMemo(() => {
+  const q = normalize(queryText);       // busca sem acento/espaço/minúscula
+  const filter = normalize(filterStatus);  // status selecionado pelo usuário
+
+  return frotaProcessada.filter((v) => {
+    const status = normalize(v.statusGeral);     // status real do veículo
+    const placaModelo = normalize(`${v.placa} ${v.modelo}`); // busca por placa/modelo
+
+    // Filtra por status (ignora caixa, acento, espaço)
+    if (filter !== "all" && status !== filter) return false;
+
+    // Filtra busca texto
+    if (q && !placaModelo.includes(q)) return false;
+
+    return true;
+  });
+}, [frotaProcessada, queryText, filterStatus]);
+
+const stats = useMemo(() => {
+  let total = frotaProcessada.length;
+  let emDia = 0, atento = 0, atrasado = 0;
+
+  frotaProcessada.forEach((v) => {
+    const status = normalize(v.statusGeral);
+
+    if (status === "emdia") emDia += 1;
+    else if (status === "atenca") atento += 1;   // "atenção" sem cedilha
+    else if (status === "atrasado") atrasado += 1;
+  });
+
+  return { total, emDia, atento, atrasado };
+}, [frotaProcessada]);
+
 
   return (
     <div className="relative min-h-screen">
@@ -242,7 +270,7 @@ export default function DashboardManutencao() {
           {/* HEADER */}
           <header className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
             <div>
-              <h1 className="text-4xl font-extrabold">Gestão de Manutenção</h1>
+              <h1 className="text-4xl font-extrabold dark:text-white">Gestão de Manutenção</h1>
               <p className="text-gray-600 dark:text-slate-400">Visão completa da sua frota</p>
             </div>
             <div className="flex gap-3 flex-wrap">
@@ -258,10 +286,10 @@ export default function DashboardManutencao() {
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
-                className="rounded-full border px-4 py-2"
+                className="rounded-full border px-4 py-2 "
               >
                 <option value="all">Todos</option>
-                <option value="emdia">Em dia</option>
+                <option value="em dia">Em dia</option>
                 <option value="atenção">Atenção</option>
                 <option value="atrasado">Atrasado</option>
               </select>
@@ -305,7 +333,7 @@ export default function DashboardManutencao() {
           {/* TABELA */}
           <div className="rounded-2xl shadow-lg overflow-hidden border border-gray-200 dark:border-slate-700">
             <div className="flex items-center justify-between p-4 border-b">
-              <h2 className="text-xl font-semibold">Frota Detalhada</h2>
+              <h2 className="text-xl font-semibold dark:text-white">Frota Detalhada</h2>
               <button
                 onClick={() => window.location.reload()}
                 className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700"
@@ -315,7 +343,7 @@ export default function DashboardManutencao() {
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left">
-                <thead className="bg-gray-100 dark:bg-slate-700">
+                <thead className="bg-gray-100 dark:bg-slate-700 dark:text-white">
                   <tr>
                     <th className="p-3">Veículo</th>
                     <th className="p-3">Status</th>
@@ -331,7 +359,7 @@ export default function DashboardManutencao() {
                     ? filtered.map((v) => <VeiculoRow key={v.id} veiculo={v} />)
                     : (
                       <tr>
-                        <td colSpan="5" className="p-6 text-center text-gray-500 dark:text-slate-400">
+                        <td colSpan="5" className="p-6 text-center text-gray-500 dark:text-slate-400 dark:text-white">
                           Nenhum veículo encontrado.
                         </td>
                       </tr>

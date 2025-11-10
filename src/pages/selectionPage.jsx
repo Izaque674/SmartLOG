@@ -20,7 +20,7 @@ function SelectionPage() {
 
       <header className="absolute top-0 left-0 right-0 z-20 flex justify-between items-center p-4 bg-transparent text-white">
         <div>
-          Bem-vindo, <span className="font-bold">{user?.email || 'Gestor'}</span>
+          Bem-vindo, <span className="font-bold">{user?.displayName || "Nome não disponível"}</span>
         </div>
         <button
           onClick={handleLogout}
