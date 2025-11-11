@@ -5,7 +5,7 @@ function AtualizarKmModal({ veiculo, onClose, onSave }) {
   const [novaKm, setNovaKm] = useState('');
   const [error, setError] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
@@ -24,11 +24,20 @@ function AtualizarKmModal({ veiculo, onClose, onSave }) {
       return;
     }
 
-    // Chama a função onSave passando o valor numérico
-    onSave(kmNumerico);
-    // Fecha o modal após salvar
+
     onClose();
+
+
+
+     try {
+    await onSave(kmNumerico); // Espera a função onSave (que é uma promise) terminar
+  } catch (error) {
+    console.error("Erro ao salvar a KM:", error);
+    // Você pode reabrir o modal com uma mensagem de erro se quiser
+    setError("Falha ao salvar. Tente novamente."); 
+  }
   };
+
 
   return (
     // Overlay do modal

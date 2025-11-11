@@ -18,7 +18,7 @@ function EditarVeiculoModal({ veiculo, onClose, onSave }) {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
@@ -28,12 +28,14 @@ function EditarVeiculoModal({ veiculo, onClose, onSave }) {
       return;
     }
 
+     onClose(); 
+
     // Chama a função onSave, passando os dados atualizados
-    onSave({
+     await onSave({
       ...formData,
       ano: parseInt(formData.ano, 10), // Garante que o ano seja um número
     });
-    onClose(); // Fecha o modal
+ 
   };
 
   return (

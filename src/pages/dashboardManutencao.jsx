@@ -254,7 +254,7 @@ const stats = useMemo(() => {
     const status = normalize(v.statusGeral);
 
     if (status === "emdia") emDia += 1;
-    else if (status === "atenca") atento += 1;   // "atenção" sem cedilha
+    else if (status === "atencao") atento += 1;   // "atenção" sem cedilha
     else if (status === "atrasado") atrasado += 1;
   });
 

@@ -205,8 +205,8 @@ function AdicionarVeiculoPage() {
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-10">
           {/* Card de dados do veículo */}
-          <div className="rounded-2xl bg-white border border-gray-200 shadow-xl p-8 grid grid-cols-1 md:grid-cols-3 gap-8 dark:border-slate-700 dark:bg-slate-800">
-            <div className="col-span-1 flex flex-col items-center justify-center gap-4">
+          <div className="rounded-2xl bg-white border border-gray-200 shadow-xl p-8 grid grid-cols-1 md:grid-cols-4 gap-8 dark:border-slate-700 dark:bg-slate-800 items-start">
+            <div className="col-span-1 flex flex-col items-center justify-center gap-4 self-start">
               <label className="block text-sm font-bold text-center text-gray-700 dark:text-slate-200">
                 Foto do Veículo
               </label>

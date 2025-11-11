@@ -30,12 +30,16 @@ function CardEntrega({ entrega, onUpdateStatus }) {
   return (
     <div className={`p-3 rounded-lg shadow-sm border-l-4 ${currentStatus.bg} ${currentStatus.borderColor} space-y-2 transition-colors duration-300`}>
       <div>
-        <p className="font-bold text-gray-800 dark:text-slate-200">{entrega.cliente}</p>
-        <p className="text-xs text-gray-600 dark:text-slate-400">{entrega.pedido}</p>
-        <div className="flex items-center text-sm text-gray-500 dark:text-slate-400 mt-1">
-          <FiMapPin className="mr-1.5 flex-shrink-0" />
-          <span>{entrega.endereco}</span>
-        </div>
+
+      <div>
+  <p className="font-bold text-gray-800 ">{entrega.cliente}</p>
+  <p className="text-xs text-gray-600 ">{entrega.pedido}</p>
+  <div className="flex items-center text-sm text-gray-500  mt-1">
+    <FiMapPin className="mr-1.5 flex-shrink-0 text-gray-500 " />
+    <span className="text-gray-700 ">{entrega.endereco}</span>
+  </div>
+</div>
+
       </div>
       
       <div className="flex justify-between items-center border-t dark:border-slate-600 pt-2">

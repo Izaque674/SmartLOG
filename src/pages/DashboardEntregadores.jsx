@@ -260,7 +260,7 @@ const handleDeleteEntregador = async () => {
   }
 
   return (
-    <div className="p-6 sm:p-8 dark:bg-slate-900 min-h-screen">
+    <div className="p-6 sm:p-8  min-h-screen">
       <div className="mx-auto max-w-7xl">
 
         {jornadaAtiva ? (
