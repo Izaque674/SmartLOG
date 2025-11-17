@@ -136,47 +136,77 @@ function CarrosselVeiculos({ frota }) {
   if (!frota || frota.length === 0) {
     return null;
   }
+
   return (
     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-6">
       <h2 className="text-xl font-semibold mb-4 dark:text-white">Garagem Virtual</h2>
-      <Swiper
-        effect={'coverflow'}
-        grabCursor
-        centeredSlides
-        loop={frota.length > 2}
-        slidesPerView={'auto'}
-        coverflowEffect={{
-          rotate: 50,
-          stretch: 0,
-          depth: 100,
-          modifier: 1,
-          slideShadows: true
-        }}
-        pagination={{ clickable: true }}
-        navigation
-        modules={[EffectCoverflow, Pagination, Navigation]}
-        className="mySwiper"
-        style={{ paddingBottom: 32 }}
-      >
-        {frota.map((veiculo) => (
-          <SwiperSlide key={veiculo.id} style={{ width: '320px', height: '220px' }}>
-            <Link to={`/manutencao/veiculo/${veiculo.id}`} className="block h-full w-full">
-              <div className="relative h-full w-full rounded-lg overflow-hidden group ring-2 ring-indigo-200 dark:ring-indigo-900">
-                <img
-                  src={veiculo.fotoUrl || 'https://via.placeholder.com/320x220?text=Sem+Foto'}
-                  alt={`${veiculo.modelo} - ${veiculo.placa}`}
-                  className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                <div className="absolute bottom-0 left-0 p-4 text-white">
-                  <h3 className="font-bold text-lg text-shadow">{veiculo.modelo}</h3>
-                  <p className="text-sm opacity-90 font-mono">{veiculo.placa}</p>
+      
+      {/* 
+        # MUDANÇA 1: Adicionar uma div container com a classe 'relative'
+        Isso é crucial para que possamos posicionar as flechas de navegação corretamente.
+      */}
+      <div className="relative">
+        <Swiper
+          effect={'coverflow'}
+          grabCursor={true}
+          centeredSlides={true}
+          loop={frota.length > 3} // Loop funciona melhor com um número maior de slides
+          slidesPerView={'auto'}
+          coverflowEffect={{
+            rotate: 50,
+            stretch: 0,
+            depth: 100,
+            modifier: 1,
+            slideShadows: true,
+          }}
+          pagination={{
+            clickable: true,
+            // # MUDANÇA 2: Classe para estilizar a paginação (as bolinhas)
+            el: '.swiper-pagination-custom', 
+          }}
+          navigation={{
+            // # MUDANÇA 3: Classes para estilizar as flechas
+            nextEl: '.swiper-button-next-custom',
+            prevEl: '.swiper-button-prev-custom',
+          }}
+          modules={[EffectCoverflow, Pagination, Navigation]}
+          className="mySwiper" // Classe para o container principal da Swiper
+        >
+          {frota.map((veiculo) => (
+            <SwiperSlide key={veiculo.id} style={{ width: '300px', height: '200px' }}>
+              <Link to={`/manutencao/veiculo/${veiculo.id}`} className="block h-full w-full">
+                <div className="relative h-full w-full rounded-lg overflow-hidden group shadow-lg">
+                  <img
+                    src={veiculo.fotoUrl || 'https://via.placeholder.com/300x200?text=Sem+Foto'}
+                    alt={`${veiculo.modelo} - ${veiculo.placa}`}
+                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+                  <div className="absolute bottom-0 left-0 p-4 text-white">
+                    <h3 className="font-bold text-lg drop-shadow-md">{veiculo.modelo}</h3>
+                    <p className="text-sm opacity-90 font-mono drop-shadow-md">{veiculo.placa}</p>
+                  </div>
                 </div>
-              </div>
-            </Link>
-          </SwiperSlide>
-        ))}
-      </Swiper>
+              </Link>
+            </SwiperSlide>
+          ))}
+        </Swiper>
+
+        {/* 
+          # MUDANÇA 4: Os elementos customizados para a navegação e paginação
+          A Swiper vai automaticamente usar estes divs para renderizar seus controles.
+        */}
+        <div className="swiper-pagination-custom text-center mt-4"></div>
+        
+        <div className="swiper-button-prev-custom absolute top-1/2 left-2 -translate-y-1/2 z-10 p-2 bg-white/50 dark:bg-black/50 rounded-full cursor-pointer hover:bg-white dark:hover:bg-black transition-colors">
+          {/* Ícone de seta para a esquerda (exemplo) */}
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-800 dark:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+        </div>
+        <div className="swiper-button-next-custom absolute top-1/2 right-2 -translate-y-1/2 z-10 p-2 bg-white/50 dark:bg-black/50 rounded-full cursor-pointer hover:bg-white dark:hover:bg-black transition-colors">
+          {/* Ícone de seta para a direita (exemplo) */}
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-800 dark:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+        </div>
+      </div>
     </div>
   );
 }
