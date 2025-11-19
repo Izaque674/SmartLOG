@@ -5,7 +5,7 @@ import { auth } from '../firebase-config.js';
 import loginBg from '../assets/login-bg.jpg';
 import { FiEye, FiEyeOff } from 'react-icons/fi';
 
-import logoImage from '../assets/LOGO1.png'; // Sua importação está correta
+import logoImage from '../assets/LOGO1.png';  
 
 function LoginPage() {
   const [email, setEmail] = useState('');

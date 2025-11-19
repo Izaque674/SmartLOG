@@ -13,10 +13,10 @@ import MainLayout from './layouts/MainLayout.jsx';
 import App from './App.jsx';
 import LoginPage from './pages/loginPage.jsx';
 import RegisterPage from './pages/RegisterPage.jsx';
-import SelectionPage from './pages/selectionPage.jsx';
+import SelectionPage from './pages/SelectionPage.jsx';
 
 // Páginas de Manutenção
-import DashboardManutencao from './pages/dashboardManutencao.jsx';
+import DashboardManutencao from './pages/DashboardManutencao.jsx';
 import AdicionarVeiculoPage from './pages/AdicionarVeiculoPage.jsx';
 import PaginaInfoVeiculo from './pages/PaginaInfoVeiculo.jsx';
 

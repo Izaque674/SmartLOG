@@ -19,7 +19,7 @@ import {
   FiPlus
 } from 'react-icons/fi';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
-import { db } from '../firebase-config';
+import { db } from '../firebase-config.js';
 
 // Swiper imports corretos p/ v9+
 import { Swiper, SwiperSlide } from 'swiper/react';
