@@ -11,7 +11,7 @@ import MainLayout from './layouts/MainLayout.jsx';
 
 // Páginas
 import App from './App.jsx';
-import LoginPage from './pages/loginPage.jsx';
+import LoginPage from '/src/pages/LoginPage.jsx';
 import RegisterPage from './pages/RegisterPage.jsx';
 import SelectionPage from './pages/SelectionPage.jsx';
 
