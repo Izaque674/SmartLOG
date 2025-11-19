@@ -3,7 +3,9 @@ import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth } from '../firebase-config';
 
 
-export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+export const API_URL = import.meta.env.DEV 
+  ? 'http://localhost:3001/api' 
+  : 'https://smartlogbackend.onrender.com/api';
 const AppContext = createContext();
 
 export function AppProvider({ children }) {

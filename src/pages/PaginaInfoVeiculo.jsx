@@ -326,47 +326,86 @@ function PaginaInfoVeiculo() {
         </div>
 
 
-        <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800 mb-8">
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-6">
-            <VeiculoFotoVis fotoUrl={veiculoProcessado.fotoUrl} modelo={veiculoProcessado.modelo} placa={veiculoProcessado.placa} />
-            <div className="flex-1">
-              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{veiculoProcessado.modelo}</h2>
-                  <p className="text-gray-500 dark:text-slate-400">Placa: {veiculoProcessado.placa} | Ano: {veiculoProcessado.ano}</p>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <button
-                    onClick={() => toggleModal('editVeiculo')}
-                    className="flex items-center justify-center px-4 py-2 rounded-md bg-blue-500 text-white hover:bg-blue-600 focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75"
-                    aria-label="Editar veículo"
-                  >
-                    <FiEdit className="mr-2" />
-                    <span>Editar</span>
-                  </button>
-                  <button
-                    onClick={() => toggleModal('km')}
-                    className="flex items-center justify-center px-4 py-2 rounded-md bg-green-500 text-white hover:bg-green-600 focus:ring-2 focus:ring-green-400 focus:ring-opacity-75"
-                  >
-                    <FiRefreshCw className="mr-2" />
-                    <span>Atualizar KM</span>
-                  </button>
-                  <button
-                    onClick={() => toggleModal('deleteVeiculo')}
-                    className="flex items-center justify-center px-4 py-2 rounded-md bg-red-500 text-white hover:bg-red-600 focus:ring-2 focus:ring-red-400 focus:ring-opacity-75"
-                  >
-                    <FiTrash2 className="mr-2" />
-                    <span>Excluir</span>
-                  </button>
-                </div>
-              </div>
-              <div className="mt-4 pt-4 border-t border-gray-200 dark:border-slate-700">
-                <p className="text-gray-500 dark:text-slate-400">Quilometragem Atual</p>
-                <p className="font-bold text-3xl text-blue-600">{veiculoProcessado.km_atual.toLocaleString('pt-BR')} km</p>
-              </div>
-            </div>
-          </div>
+<div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800 mb-8">
+  <div className="flex flex-col sm:flex-row sm:items-center gap-6">
+    
+    <VeiculoFotoVis fotoUrl={veiculoProcessado.fotoUrl} modelo={veiculoProcessado.modelo} placa={veiculoProcessado.placa} />
+
+    <div className="flex-1">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{veiculoProcessado.modelo}</h2>
+          <p className="text-gray-500 dark:text-slate-400">Placa: {veiculoProcessado.placa} | Ano: {veiculoProcessado.ano}</p>
         </div>
+        
+        {/*
+          # MUDANÇA 1: Botões GRANDES para telas de desktop (sm:flex)
+          Estes só aparecem em telas 'sm' ou maiores.
+        */}
+        <div className="hidden sm:flex items-center space-x-3">
+          <button
+            onClick={() => toggleModal('editVeiculo')}
+            className="flex items-center justify-center gap-2 px-4 py-2 rounded-md bg-blue-500 text-white hover:bg-blue-600 font-semibold"
+          >
+            <FiEdit size={16} />
+            <span>Editar</span>
+          </button>
+          <button
+            onClick={() => toggleModal('km')}
+            className="flex items-center justify-center gap-2 px-4 py-2 rounded-md bg-green-600 text-white hover:bg-green-700 font-semibold"
+          >
+            <FiRefreshCw size={16} />
+            <span>Atualizar KM</span>
+          </button>
+          <button
+            onClick={() => toggleModal('deleteVeiculo')}
+            className="p-2 rounded-full bg-red-100 text-red-600 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-300 dark:hover:bg-red-800/50"
+            title="Excluir Veículo"
+          >
+            <FiTrash2 size={16} />
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-4 pt-4 border-t border-gray-200 dark:border-slate-700">
+        <p className="text-gray-500 dark:text-slate-400">Quilometragem Atual</p>
+        <p className="font-bold text-3xl text-blue-600 dark:text-blue-400">{veiculoProcessado.km_atual.toLocaleString('pt-BR')} km</p>
+      </div>
+
+      {/*
+        # MUDANÇA 2: Botões COMPACTOS para telas de celular (sm:hidden)
+        Estes só aparecem em telas pequenas. Agora são ícones lado a lado.
+      */}
+      <div className="sm:hidden flex items-center justify-center space-x-4 mt-4 pt-4 border-t border-gray-200 dark:border-slate-700">
+          <button
+            onClick={() => toggleModal('km')}
+            className="flex flex-col items-center gap-1 text-green-600 font-semibold text-xs"
+            title="Atualizar KM"
+          >
+            <div className="p-3 bg-green-100 rounded-full"><FiRefreshCw size={18} /></div>
+            <span>KM</span>
+          </button>
+          <button
+            onClick={() => toggleModal('editVeiculo')}
+            className="flex flex-col items-center gap-1 text-blue-600 font-semibold text-xs"
+            title="Editar"
+          >
+            <div className="p-3 bg-blue-100 rounded-full"><FiEdit size={18} /></div>
+            <span>Editar</span>
+          </button>
+          <button
+            onClick={() => toggleModal('deleteVeiculo')}
+            className="flex flex-col items-center gap-1 text-red-600 font-semibold text-xs"
+            title="Excluir"
+          >
+            <div className="p-3 bg-red-100 rounded-full"><FiTrash2 size={18} /></div>
+            <span>Excluir</span>
+          </button>
+      </div>
+
+    </div>
+  </div>
+</div>
 
 
         <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800 mb-8">

@@ -55,7 +55,7 @@ function Header({ title, onMenuClick }) {
         <div className="flex flex-1 items-center justify-end space-x-4">
           <ThemeToggle />
           <div className="text-sm text-right">
-            <p className="text-gray-600 dark:text-slate-400">Olá, izaque</p>
+            <p className="text-gray-600 dark:text-slate-400">{user?.displayName || "Nome não disponível"}</p>
             <button onClick={logout} className="text-xs text-gray-500 hover:text-red-600 dark:hover:text-red-400">
               Sair
             </button>
